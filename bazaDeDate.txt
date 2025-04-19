@@ -1,0 +1,104 @@
+CREATE TABLE Specializare (
+	IdSpecializare SERIAL PRIMARY KEY,	
+	Nume VARCHAR(30) NOT NULL
+	
+);
+
+CREATE TABLE Produs (
+	IdProdus SERIAL Primary key,
+	Nume VARCHAR(30) NOT NULL,
+	IdSpecializare integer NOT NULL,
+	FOREIGN KEY(IdSpecializare) References Specializare	
+);
+
+CREATE TABLE Subscriptie (
+	Tip VARCHAR(30) PRIMARY KEY,
+	NumarMaximUtilizatori integer NOT NULL,
+	TimpRaspunsP1 VARCHAR(4) NOT NULL,
+	TimpRaspunsP2 VARCHAR(4) NOT NULL,
+	TimpRaspunsP3 VARCHAR(4) NOT NULL,
+	TimpRaspunsP4 VARCHAR(4) NOT NULL
+);
+
+Create Table EchipaCompanie (
+	IdEchipa SERIAL PRIMARY KEY,
+	Nume VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE MembruEchipa (
+	IdMembru SERIAL PRIMARY KEY,
+	Nume VARCHAR(50) NOT NULL,
+	Prenume VARCHAR(50) NOT NULL,
+	Rol VARCHAR(100) NOT NULL,
+	Email VARCHAR(50) UNIQUE NOT NULL,
+	IdEchipa integer NOT NULL,
+	FOREIGN KEY(IdEchipa) References EchipaCompanie 
+	on (IdEchipa)
+);
+
+CREATE TABLE Companie (
+	IdCompanie serial PRIMARY KEY,
+	DataCreare date not NULL,
+	Nume VARCHAR(50) NOT NULL,
+ 	Status VARCHAR(50) NOT NULL,
+	Focus boolean NOT NULL,
+	NotiteDespreCompanie text,
+	TipSubscriptie VARCHAR(30), 
+	IdEchipa integer,
+	FOREIGN KEY (IdEchipa) References EchipaCompanie,
+	FOREIGN KEY (TipSubscriptie) References Subscriptie
+);
+
+CREATE TABLE Utilizator (
+	IdUtilizator SERIAL PRIMARY KEY,
+	Email VARCHAR(50) UNIQUE NOT NULL,
+	Nume VARCHAR(50) NOT NULL,
+	Prenume VARCHAR(50) NOT NULL,
+	ModalitateLogare text NOT NULL,
+	PozaProfil text NOT NULL,
+	DataCreare date NOT NULL,
+	IdCompanie integer,
+	TipUtilizator varchar(10) NOT NULL,
+	Specializare integer,
+	FOREIGN KEY (Specializare) References Specializare,
+	FOREIGN KEY (IdCompanie) References Companie
+);
+
+CREATE TABLE Tichet (
+	IdTichet SERIAL PRIMARY KEY,
+	Titlu VARCHAR(80) NOT NULL,
+	TipTichet VARCHAR(20) NOT NULL,
+	Prioritate CHAR(2) NOT NULL,
+	DataCreare date NOT NULL,
+	DataInchidere date NOT NULL,
+	StatusCurent varchar(50) NOT NULL,
+	ConsultDeschis boolean NOT NULL,
+	BugDeschis boolean NOT NULL,
+	Produs varchar(50) NOT NULL,
+	Escaladat boolean NOT NULL,
+	IdSuport integer NOT NULL,
+	IdUtilizator integer NOT NULL,
+	LinkDocs text,
+	LinkDrive text,
+	FOREIGN KEY (IdSuport) References Utilizator,
+	FOREIGN KEY (IdUtilizator) References Utilizator
+);
+
+Create TABLE Mesaje (
+	IdMesaj SERIAL PRIMARY KEY,
+	DataCreare date not null,
+	EmitatorMesaj varchar(10) NOT NULL, --"suport"/"client"
+	EmailSuport VARCHAR(50) NOT NULL,
+	EmailUtilizator VARCHAR(50) NOT NULL,
+	Continut text NOT NULL,
+	IdTichet integer NOT NULL,
+	FOREIGN KEY (IdTichet) References Tichet
+);
+
+Create Table IstoricTichet (
+	IdIstoric Serial Primary KEY,
+	IdTichet INTEGER NOT NULL,
+	DataCreare date NOT NULL,
+	Modificare VARCHAR(50) NOT NULL,
+	FOREIGN KEY (IdTichet) References Tichet
+);

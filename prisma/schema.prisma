@@ -1,0 +1,122 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL2")
+}
+
+model companie {
+  idcompanie           Int             @id @default(autoincrement())
+  datacreare           DateTime        @db.Date
+  nume                 String          @db.VarChar(50)
+  status               String          @db.VarChar(50)
+  focus                Boolean
+  notitedesprecompanie String?
+  tipsubscriptie       String?         @db.VarChar(30)
+  idechipa             Int?
+  echipacompanie       echipacompanie? @relation(fields: [idechipa], references: [idechipa], onDelete: NoAction, onUpdate: NoAction)
+  subscriptie          subscriptie?    @relation(fields: [tipsubscriptie], references: [tip], onDelete: NoAction, onUpdate: NoAction)
+  utilizator           utilizator[]
+}
+
+model echipacompanie {
+  idechipa     Int            @id @default(autoincrement())
+  nume         String         @db.VarChar(50)
+  companie     companie[]
+  membruechipa membruechipa[]
+}
+
+model istorictichet {
+  idistoric  Int      @id @default(autoincrement())
+  idtichet   Int
+  datacreare DateTime @db.Date
+  modificare String   @db.VarChar(50)
+  tichet     tichet   @relation(fields: [idtichet], references: [idtichet], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model membruechipa {
+  idmembru       Int            @id @default(autoincrement())
+  nume           String         @db.VarChar(50)
+  prenume        String         @db.VarChar(50)
+  rol            String         @db.VarChar(100)
+  email          String         @unique @db.VarChar(50)
+  idechipa       Int
+  echipacompanie echipacompanie @relation(fields: [idechipa], references: [idechipa], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model mesaje {
+  idmesaj         Int      @id @default(autoincrement())
+  datacreare      DateTime @db.Date
+  emitatormesaj   String   @db.VarChar(10)
+  emailsuport     String   @db.VarChar(50)
+  emailutilizator String   @db.VarChar(50)
+  continut        String
+  idtichet        Int
+  tichet          tichet   @relation(fields: [idtichet], references: [idtichet], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model specializare {
+  idspecializare                                   Int          @id @default(autoincrement())
+  nume                                             String       @db.VarChar(30)
+  produse                                          produse[]
+  utilizator_utilizator_specializareTospecializare utilizator[] @relation("utilizator_specializareTospecializare")
+}
+
+model subscriptie {
+  tip                   String     @id @db.VarChar(30)
+  numarmaximutilizatori Int
+  timpraspunsp1         String     @db.VarChar(4)
+  timpraspunsp2         String     @db.VarChar(4)
+  timpraspunsp3         String     @db.VarChar(4)
+  timpraspunsp4         String     @db.VarChar(4)
+  companie              companie[]
+}
+
+model tichet {
+  idtichet                                   Int             @id @default(autoincrement())
+  titlu                                      String          @db.VarChar(80)
+  tiptichet                                  String          @db.VarChar(20)
+  prioritate                                 String          @db.Char(2)
+  datacreare                                 DateTime        @db.Date
+  datainchidere                              DateTime        @db.Date
+  statuscurent                               String          @db.VarChar(50)
+  consultdeschis                             Boolean
+  bugdeschis                                 Boolean
+  produs                                     String          @db.VarChar(50)
+  escaladat                                  Boolean
+  idsuport                                   Int
+  idutilizator                               Int
+  linkdocs                                   String?
+  linkdrive                                  String?
+  istorictichet                              istorictichet[]
+  mesaje                                     mesaje[]
+  utilizator_tichet_idsuportToutilizator     utilizator      @relation("tichet_idsuportToutilizator", fields: [idsuport], references: [idutilizator], onDelete: NoAction, onUpdate: NoAction)
+  utilizator_tichet_idutilizatorToutilizator utilizator      @relation("tichet_idutilizatorToutilizator", fields: [idutilizator], references: [idutilizator], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model utilizator {
+  idutilizator                                       Int           @id @default(autoincrement())
+  email                                              String        @unique @db.VarChar(50)
+  nume                                               String        @db.VarChar(50)
+  prenume                                            String        @db.VarChar(50)
+  modalitatelogare                                   String
+  pozaprofil                                         String
+  datacreare                                         DateTime      @db.Date
+  idcompanie                                         Int?
+  tiputilizator                                      String        @db.VarChar(10)
+  specializare                                       Int?
+  tichet_tichet_idsuportToutilizator                 tichet[]      @relation("tichet_idsuportToutilizator")
+  tichet_tichet_idutilizatorToutilizator             tichet[]      @relation("tichet_idutilizatorToutilizator")
+  companie                                           companie?     @relation(fields: [idcompanie], references: [idcompanie], onDelete: NoAction, onUpdate: NoAction)
+  specializare_utilizator_specializareTospecializare specializare? @relation("utilizator_specializareTospecializare", fields: [specializare], references: [idspecializare], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model produse {
+  idprodus       Int          @id @default(autoincrement())
+  nume           String       @db.VarChar(30)
+  idspecializare Int
+  specializare   specializare @relation(fields: [idspecializare], references: [idspecializare], onDelete: NoAction, onUpdate: NoAction)
+}
