@@ -7,15 +7,15 @@ import {
 
 const produsRouter = express.Router();
 
-const insertProdus = async (nume, idSpecializare) => {
+const createProdus = async (nume, idSpecializare) => {
   let produs = null;
   try {
     produs = await prisma.produse.findFirst({ where: { nume: nume } });
     if (produs) {
-      return "Produsul deja exista";
+      return "Produsul deja exista.";
     }
   } catch (error) {
-    return error;
+    console.log(error);
   }
   if (!produs) {
     try {
@@ -26,7 +26,7 @@ const insertProdus = async (nume, idSpecializare) => {
         },
       });
     } catch (error) {
-      return error;
+      console.log(error);
     }
   }
   return produs;
@@ -41,7 +41,7 @@ const getProdus = async (nume) => {
     });
     return produs;
   } catch (error) {
-    return error;
+    console.log(error);
   }
 };
 
@@ -50,7 +50,7 @@ const getProduse = async () => {
     let produse = await prisma.produse.findMany();
     return produse;
   } catch (error) {
-    return error;
+    console.log(error);
   }
 };
 
@@ -67,7 +67,7 @@ const deleteProdus = async (nume) => {
     }
     return produs;
   } catch (error) {
-    return error;
+    console.log(error);
   }
 };
 
@@ -77,11 +77,11 @@ produsRouter.post(
   async (req, res) => {
     try {
       const { nume, idSpecializare } = { ...req.body };
-      const produs = await insertProdus(nume, idSpecializare);
-      if (produs === "Produsul deja exista") {
-        res.status(409).send({ message: "Produsul deja exista" });
+      const produs = await createProdus(nume, idSpecializare);
+      if (produs === "Produsul deja exista.") {
+        res.status(409).send({ message: "Produsul deja exista." });
       } else {
-        res.status(201).send(produs);
+        res.status(201).send({ message: "Produsul a fost creat." });
       }
     } catch (error) {
       res.status(500).send(error);
@@ -99,7 +99,7 @@ produsRouter.get(
       if (produs) {
         res.status(200).send(produs);
       } else {
-        res.status(404).send({ message: "Produsul nu exista" });
+        res.status(404).send({ message: "Produsul nu exista." });
       }
     } catch (error) {
       res.status(500).send(error);
@@ -116,7 +116,7 @@ produsRouter.get(
       if (produse) {
         res.status(200).send(produse);
       } else {
-        res.status(404).send({ message: "Produsele nu exista" });
+        res.status(404).send({ message: "Produsele nu exista." });
       }
     } catch (error) {
       res.status(500).send(error);
@@ -132,9 +132,9 @@ produsRouter.delete(
       let { nume } = { ...req.params };
       let produs = await deleteProdus(nume);
       if (produs) {
-        res.status(200).send({ message: "Produsul a fost sters" });
+        res.status(200).send({ message: "Produsul a fost sters." });
       } else {
-        res.status(404).send({ message: "Produsul nu exista" });
+        res.status(404).send({ message: "Produsul nu exista." });
       }
     } catch (error) {
       res.status(500).send(error);

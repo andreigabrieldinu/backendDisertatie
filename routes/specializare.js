@@ -7,7 +7,7 @@ import {
 
 const specializariRouter = express.Router();
 
-const insertSpecializare = async (nume) => {
+const createSpecializare = async (nume) => {
   let specializare = null;
   try {
     specializare = await prisma.specializare.findFirst({
@@ -27,7 +27,6 @@ const insertSpecializare = async (nume) => {
       });
     } catch (error) {
       console.log(error);
-      return error;
     }
   }
   return specializare;
@@ -75,11 +74,11 @@ specializariRouter.post(
   async (req, res) => {
     const { nume } = { ...req.body };
     try {
-      const specializare = await insertSpecializare(nume);
+      const specializare = await createSpecializare(nume);
       if (specializare) {
-        res.status(201).send({ message: "Specializarea a fost stears" });
+        res.status(201).send({ message: "Specializarea a fost creata." });
       } else {
-        res.status(409).send({ message: "Specializarea deja exista" });
+        res.status(409).send({ message: "Specializarea deja exista." });
       }
     } catch (error) {
       res.status(500).send(error);
@@ -121,9 +120,9 @@ specializariRouter.delete(
       const { nume } = { ...req.params };
       const specializare = await deleteSpecializare(nume);
       if (specializare) {
-        res.status(200).send(specializare);
+        res.status(200).send({ message: "Specializarea a fost stearsa." });
       } else {
-        res.status(200).send({ message: "Specializarea nu exista" });
+        res.status(200).send({ message: "Specializarea nu exista." });
       }
     } catch (error) {
       res.status(500).send(error);
