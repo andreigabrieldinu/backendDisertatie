@@ -171,23 +171,19 @@ subscriptieRouter.get(
   }
 );
 
-subscriptieRouter.get(
-  "/",
-  // esteUtilizatorClientSauAdmin,
-  async (req, res) => {
-    let subscriptii;
-    try {
-      subscriptii = await getSubscriptii();
-      if (subscriptii) {
-        res.status(200).send(subscriptii);
-      } else {
-        res.status(404).send({ message: "Subscriptiile nu exista." });
-      }
-    } catch (error) {
-      res.status(500).send(error);
+subscriptieRouter.get("/", esteUtilizatorClientSauAdmin, async (req, res) => {
+  let subscriptii;
+  try {
+    subscriptii = await getSubscriptii();
+    if (subscriptii) {
+      res.status(200).send(subscriptii);
+    } else {
+      res.status(404).send({ message: "Subscriptiile nu exista." });
     }
+  } catch (error) {
+    res.status(500).send(error);
   }
-);
+});
 
 subscriptieRouter.patch(
   "/:tip",

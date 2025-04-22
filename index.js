@@ -1,9 +1,10 @@
 import express from "express";
 import { rootRouter } from "./routes/root.js";
 import dotenv from "dotenv";
-import "./controllers/auth.js";
+import "./controllers/googleAuth.js";
 import passport from "passport";
 import session from "express-session";
+import "./controllers/localAuth.js";
 
 dotenv.config();
 

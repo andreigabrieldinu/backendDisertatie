@@ -1,6 +1,10 @@
 import express from "express";
 import passport from "passport";
+import bcrypt from "bcrypt";
+import prisma from "../prisma/prismaClient.js";
+import passport_local from "passport-local";
 
+const saltRounds = 10;
 const utilizatorRouter = express.Router();
 
 function esteUtilizatorAdmin(req, res, next) {
@@ -34,6 +38,44 @@ utilizatorRouter.get(
   "/google/auth",
   passport.authenticate("google", { scope: ["email", "profile"] })
 );
+
+utilizatorRouter.post("/inregistrare", async (req, res) => {
+  try {
+    const { email, nume, prenume, parola } = { ...req.body };
+    let user = await prisma.utilizator.findUnique({
+      where: {
+        email: email,
+      },
+    });
+    if (!user) {
+      let hashedParola = bcrypt.hashSync(parola, saltRounds);
+      const tipUtilizator = "client";
+      const pozaprofil = "N/A";
+      const data = new Date().toISOString();
+
+      await prisma.utilizator.create({
+        data: {
+          email: email,
+          nume: nume,
+          prenume: prenume,
+          modalitatelogare: hashedParola,
+          pozaprofil: pozaprofil,
+          datacreare: data,
+          tiputilizator: tipUtilizator,
+        },
+      });
+      res.status(201).send({ message: "Utilizatorul a fost inregistrat" });
+    } else {
+      res.status(409).send({ message: "Utilizatorul deja exista" });
+    }
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+utilizatorRouter.post("/login", passport.authenticate("local"), (req, res) => {
+  res.status(200).send({ message: "Utilizator logat cu succes." });
+});
 
 utilizatorRouter.get(
   "/google/callback",
