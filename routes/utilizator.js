@@ -2,7 +2,6 @@ import express from "express";
 import passport from "passport";
 import bcrypt from "bcrypt";
 import prisma from "../prisma/prismaClient.js";
-import passport_local from "passport-local";
 
 const saltRounds = 10;
 const utilizatorRouter = express.Router();
