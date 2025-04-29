@@ -71,6 +71,25 @@ const getMembruEchipa = async (email) => {
   return membruEchipa;
 };
 
+const deleteMembruEchipa = async (email) => {
+  let membruEchipa = null;
+  try {
+    const membruEchipa = await prisma.membruechipa.findFirst({
+      where: { email: email },
+    });
+    if (membruEchipa) {
+      await prisma.membruechipa.delete({
+        where: { idechipa: membruEchipa.idechipa },
+      });
+    } else {
+      return "Membrul echipei nu exista";
+    }
+  } catch (error) {
+    console.log(error);
+  }
+  return membruEchipa;
+};
+
 membruEchipaRouter.post(
   "/",
   //esteUtilizatorAdmin,
@@ -122,6 +141,24 @@ membruEchipaRouter.get(
       const membruEchipa = await getMembruEchipa(email);
       if (membruEchipa === "Aceasta echipa nu exista") {
         res.status(404).send({ message: "Aceasta echipa nu exista" });
+      } else {
+        res.status(200).send(membruEchipa);
+      }
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  }
+);
+
+membruEchipaRouter.delete(
+  "/:email",
+  //esteUtilizatorAdmin
+  async (req, res) => {
+    try {
+      const { email } = { ...req.params };
+      const membruEchipa = await deleteMembruEchipa(email);
+      if (membruEchipa === "Membrul echipei nu exista") {
+        res.status(404).send({ message: "Membrul echipei nu exista" });
       } else {
         res.status(200).send(membruEchipa);
       }
