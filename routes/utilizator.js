@@ -7,7 +7,7 @@ const saltRounds = 10;
 const utilizatorRouter = express.Router();
 
 function esteUtilizatorAdmin(req, res, next) {
-  if (req.user) {
+  if (!req.user.message) {
     if (req.user.tiputilizator === "admin") {
       next();
     } else {
@@ -19,7 +19,8 @@ function esteUtilizatorAdmin(req, res, next) {
 }
 
 function esteUtilizatorClientSauAdmin(req, res, next) {
-  if (req.user) {
+  console.log(req.user);
+  if (!req.user.message) {
     if (
       req.user.tiputilizator === "client" ||
       req.user.tiputilizator === "admin"
@@ -41,6 +42,7 @@ utilizatorRouter.get(
 utilizatorRouter.post("/inregistrare", async (req, res) => {
   try {
     const { email, nume, prenume, parola } = { ...req.body };
+
     let user = await prisma.utilizator.findUnique({
       where: {
         email: email,
@@ -72,9 +74,63 @@ utilizatorRouter.post("/inregistrare", async (req, res) => {
   }
 });
 
-utilizatorRouter.post("/login", passport.authenticate("local"), (req, res) => {
-  res.status(200).send({ message: "Utilizator logat cu succes." });
-});
+async function updateSesiune(req, res, next) {
+  try {
+    if (!req.user.message) {
+      let oldUser = await prisma.utilizator.findFirst({
+        where: {
+          idutilizator: req.user.idutilizator,
+        },
+      });
+      let now = new Date();
+      console.log("Sesiunea veche", oldUser.IdSessiune);
+      console.log("Sesiunea noua", req.sessionID);
+      let result = new Date(now);
+      result.setDate(result.getDate() + 3);
+      if (
+        !oldUser.timpAbsolutExpirareSesiune ||
+        oldUser.timpAbsolutExpirareSesiune < result
+      ) {
+        oldUser = await prisma.utilizator.update({
+          where: {
+            idutilizator: oldUser.idutilizator,
+          },
+          data: {
+            IdSessiune: req.sessionID,
+            timpAbsolutExpirareSesiune: result,
+          },
+        });
+        console.log("intrat");
+        req.user.IdSessiune = oldUser.IdSessiune;
+        req.user.timpAbsolutExpirareSesiune =
+          oldUser.timpAbsolutExpirareSesiune;
+      }
+      next();
+    } else {
+      next();
+      return "Eroare validand sesiunea";
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+utilizatorRouter.post(
+  "/login",
+  passport.authenticate("local"),
+  updateSesiune,
+  async (req, res) => {
+    try {
+      if (req.user.message === "User sau parola gresita") {
+        res.status(401).send({ message: "Utilizator sau parola gresite" });
+      } else {
+        res.status(200).send({ message: "Utilizator logat cu succes." });
+      }
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  }
+);
 
 utilizatorRouter.get(
   "/google/callback",

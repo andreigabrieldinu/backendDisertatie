@@ -1,6 +1,7 @@
 import express from "express";
 import { rootRouter } from "./routes/root.js";
 import dotenv from "dotenv";
+import cors from "cors";
 import "./controllers/googleAuth.js";
 import passport from "passport";
 import session from "express-session";
@@ -11,12 +12,19 @@ dotenv.config();
 const app = express();
 const suportApp = express();
 
+app.use(cors());
+
 const port = 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(session({ secret: process.env.SESSION_SECRET }));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    cookie: { maxAge: 259200000 },
+  })
+);
 
 app.use(passport.initialize());
 app.use(passport.session());

@@ -44,7 +44,7 @@ model membruechipa {
   rol            String         @db.VarChar(100)
   email          String         @unique @db.VarChar(50)
   idechipa       Int
-  echipacompanie echipacompanie @relation(fields: [idechipa], references: [idechipa], onDelete: NoAction, onUpdate: NoAction)
+  echipacompanie echipacompanie @relation(fields: [idechipa], references: [idechipa], onDelete: SetNull, onUpdate: NoAction)
 }
 
 model mesaje {
@@ -108,6 +108,8 @@ model utilizator {
   idcompanie                                         Int?
   tiputilizator                                      String        @db.VarChar(10)
   specializare                                       Int?
+  IdSessiune                                         String?       @db.VarChar(40)
+  timpAbsolutExpirareSesiune                         DateTime?     @db.Date
   tichet_tichet_idsuportToutilizator                 tichet[]      @relation("tichet_idsuportToutilizator")
   tichet_tichet_idutilizatorToutilizator             tichet[]      @relation("tichet_idutilizatorToutilizator")
   companie                                           companie?     @relation(fields: [idcompanie], references: [idcompanie], onDelete: NoAction, onUpdate: NoAction)
