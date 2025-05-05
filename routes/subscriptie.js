@@ -174,7 +174,7 @@ subscriptieRouter.get(
 subscriptieRouter.get("/", esteUtilizatorClientSauAdmin, async (req, res) => {
   let subscriptii;
   try {
-    if (!req.sesiuneExipirata) {
+    if (!req.sesiuneExpirata) {
       subscriptii = await getSubscriptii();
       if (subscriptii) {
         res.status(200).send(subscriptii);

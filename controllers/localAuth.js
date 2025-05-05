@@ -16,7 +16,7 @@ const verifyCallback = async (username, password, done) => {
       if (bcrypt.compareSync(password, user.modalitatelogare)) {
         return done(null, user);
       } else {
-        return done(null, { message: "User sau parola gresita" });
+        return done(null, { message: "Utilizator sau parola gresita" });
       }
     }
   } catch (error) {

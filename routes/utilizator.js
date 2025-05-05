@@ -96,17 +96,19 @@ utilizatorRouter.post("/inregistrare", async (req, res) => {
 });
 
 async function updateSesiune(req, res, next) {
+  console.log("USER", req.user);
+
   try {
-    if (!req.user) {
+    if (req.user) {
       let oldUser = await prisma.utilizator.findFirst({
         where: {
           idutilizator: req.user.idutilizator,
         },
       });
-
       let newCookieTime = req.session.cookie._expires;
+      newCookieTime.setHours(newCookieTime.getHours() + 3);
       if (
-        !oldUser.timpAbsolutExpirareSesiune ||
+        oldUser.timpAbsolutExpirareSesiune ||
         oldUser.timpAbsolutExpirareSesiune < newCookieTime
       ) {
         oldUser = await prisma.utilizator.update({
@@ -124,11 +126,9 @@ async function updateSesiune(req, res, next) {
       next();
     } else {
       next();
-      return "Eroare validand sesiunea";
     }
   } catch (error) {
     console.log(error);
-    return error;
   }
 }
 
@@ -138,7 +138,8 @@ utilizatorRouter.post(
   updateSesiune,
   async (req, res) => {
     try {
-      if (req.user.message === "User sau parola gresita") {
+      console.log("DIN REQ", req.user.message);
+      if (req.user.message === "Utilizator sau parola gresita") {
         res.status(401).send({ message: "Utilizator sau parola gresite" });
       } else {
         res.status(200).send({ message: "Utilizator logat cu succes." });
@@ -150,9 +151,29 @@ utilizatorRouter.post(
 );
 
 utilizatorRouter.get(
+  "/auth/status",
+  esteUtilizatorClientSauAdmin,
+  (req, res) => {
+    if (req.user) {
+      let userToSend = {
+        idutilizator: req.user.idutilizator,
+        email: req.user.email,
+        nume: req.user.nume,
+        prenume: req.user.prenume,
+        pozaprofil: req.user.pozaprofil,
+        idcompanie: req.user.idcompanie,
+      };
+      res.status(200).send(userToSend);
+    } else {
+      res.status(401).send({ message: "Utilizatorul nu e autentificat" });
+    }
+  }
+);
+
+utilizatorRouter.get(
   "/google/callback",
   passport.authenticate("google", {
-    successRedirect: "/api/v1/user/protected",
+    successRedirect: "http://localhost:5000/acasa",
     failureRedirect: "/api/v1/user/failure",
   })
 );
@@ -171,8 +192,8 @@ utilizatorRouter.get("/logout", (req, res) => {
       return next(err);
     }
     req.session.destroy();
-    res.redirect("/");
   });
+  res.status(200).send({ message: "Utilizatorul a fost deconectat" });
 });
 
 export { utilizatorRouter, esteUtilizatorClientSauAdmin, esteUtilizatorAdmin };

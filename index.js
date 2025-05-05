@@ -6,23 +6,31 @@ import "./controllers/googleAuth.js";
 import passport from "passport";
 import session from "express-session";
 import "./controllers/localAuth.js";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
 const app = express();
 const suportApp = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5000", // Replace with your frontend domain
+    credentials: true,
+  })
+);
 
 const port = 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(cookieParser());
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
-    cookie: { maxAge: 10000 }, //259200000 3 zile
+    cookie: { maxAge: 259200000 }, //259200000 3 zile
   })
 );
 
