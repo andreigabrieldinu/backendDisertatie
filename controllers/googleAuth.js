@@ -12,11 +12,14 @@ passport.use(
     },
     async function (request, accessToken, refreshToken, profile, done) {
       const { email } = profile;
-      const utilizator = await prisma.utilizator.findUnique({
+      let utilizator = await prisma.utilizator.findUnique({
         where: {
           email: email,
         },
       });
+      const { sessionID } = request;
+      const { _expires } = request.session.cookie;
+      _expires.setHours(_expires.getHours() + 3);
       if (!utilizator) {
         try {
           const { givenName, familyName } = profile.name;
@@ -24,7 +27,8 @@ passport.use(
           const { picture } = profile;
           const data = new Date().toISOString();
           const tipUtilizator = "client";
-          await prisma.utilizator.create({
+
+          utilizator = await prisma.utilizator.create({
             data: {
               email: email,
               nume: familyName,
@@ -33,11 +37,26 @@ passport.use(
               pozaprofil: picture,
               datacreare: data,
               tiputilizator: tipUtilizator,
+              IdSessiune: sessionID,
+              timpAbsolutExpirareSesiune: _expires,
             },
           });
         } catch (error) {
           console.log(error);
         }
+        return done(null, utilizator);
+      } else {
+        await prisma.utilizator.update({
+          where: {
+            idutilizator: utilizator.idutilizator,
+          },
+          data: {
+            IdSessiune: sessionID,
+            timpAbsolutExpirareSesiune: _expires,
+          },
+        });
+        utilizator.IdSessiune = sessionID;
+        utilizator.timpAbsolutExpirareSesiune = _expires;
       }
       return done(null, utilizator);
     }

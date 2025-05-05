@@ -174,11 +174,15 @@ subscriptieRouter.get(
 subscriptieRouter.get("/", esteUtilizatorClientSauAdmin, async (req, res) => {
   let subscriptii;
   try {
-    subscriptii = await getSubscriptii();
-    if (subscriptii) {
-      res.status(200).send(subscriptii);
+    if (!req.sesiuneExipirata) {
+      subscriptii = await getSubscriptii();
+      if (subscriptii) {
+        res.status(200).send(subscriptii);
+      } else {
+        res.status(404).send({ message: "Subscriptiile nu exista." });
+      }
     } else {
-      res.status(404).send({ message: "Subscriptiile nu exista." });
+      res.status(401).send({ message: "Neautorizat, sesiune expirata" });
     }
   } catch (error) {
     res.status(500).send(error);

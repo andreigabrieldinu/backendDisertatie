@@ -109,7 +109,7 @@ model utilizator {
   tiputilizator                                      String        @db.VarChar(10)
   specializare                                       Int?
   IdSessiune                                         String?       @db.VarChar(40)
-  timpAbsolutExpirareSesiune                         DateTime?     @db.Date
+  timpAbsolutExpirareSesiune                         DateTime?     @db.Timestamp(6)
   tichet_tichet_idsuportToutilizator                 tichet[]      @relation("tichet_idsuportToutilizator")
   tichet_tichet_idutilizatorToutilizator             tichet[]      @relation("tichet_idutilizatorToutilizator")
   companie                                           companie?     @relation(fields: [idcompanie], references: [idcompanie], onDelete: NoAction, onUpdate: NoAction)

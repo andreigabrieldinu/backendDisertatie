@@ -6,10 +6,19 @@ import prisma from "../prisma/prismaClient.js";
 const saltRounds = 10;
 const utilizatorRouter = express.Router();
 
-function esteUtilizatorAdmin(req, res, next) {
+async function esteUtilizatorAdmin(req, res, next) {
   if (!req.user.message) {
     if (req.user.tiputilizator === "admin") {
-      next();
+      const userDinDB = await prisma.utilizator.findFirst({
+        where: {
+          idutilizator: req.user.idutilizator,
+        },
+      });
+      if (userDinDB.IdSessiune !== req.user.IdSessiune) {
+        res.sendStatus(401);
+      } else {
+        next();
+      }
     } else {
       res.sendStatus(403);
     }
@@ -18,19 +27,32 @@ function esteUtilizatorAdmin(req, res, next) {
   }
 }
 
-function esteUtilizatorClientSauAdmin(req, res, next) {
-  console.log(req.user);
-  if (!req.user.message) {
-    if (
-      req.user.tiputilizator === "client" ||
-      req.user.tiputilizator === "admin"
-    ) {
-      next();
+async function esteUtilizatorClientSauAdmin(req, res, next) {
+  try {
+    if (!req.user.message) {
+      if (
+        req.user.tiputilizator === "client" ||
+        req.user.tiputilizator === "admin"
+      ) {
+        const userDinDB = await prisma.utilizator.findFirst({
+          where: {
+            idutilizator: req.user.idutilizator,
+          },
+        });
+        if (userDinDB.IdSessiune !== req.user.IdSessiune) {
+          res.sendStatus(401);
+        } else {
+          next();
+        }
+      } else {
+        res.sendStatus(401);
+      }
     } else {
       res.sendStatus(401);
     }
-  } else {
-    res.sendStatus(401);
+  } catch (error) {
+    req.sesiuneExipirata = true;
+    next();
   }
 }
 
@@ -53,7 +75,6 @@ utilizatorRouter.post("/inregistrare", async (req, res) => {
       const tipUtilizator = "client";
       const pozaprofil = "N/A";
       const data = new Date().toISOString();
-
       await prisma.utilizator.create({
         data: {
           email: email,
@@ -76,20 +97,17 @@ utilizatorRouter.post("/inregistrare", async (req, res) => {
 
 async function updateSesiune(req, res, next) {
   try {
-    if (!req.user.message) {
+    if (!req.user) {
       let oldUser = await prisma.utilizator.findFirst({
         where: {
           idutilizator: req.user.idutilizator,
         },
       });
-      let now = new Date();
-      console.log("Sesiunea veche", oldUser.IdSessiune);
-      console.log("Sesiunea noua", req.sessionID);
-      let result = new Date(now);
-      result.setDate(result.getDate() + 3);
+
+      let newCookieTime = req.session.cookie._expires;
       if (
         !oldUser.timpAbsolutExpirareSesiune ||
-        oldUser.timpAbsolutExpirareSesiune < result
+        oldUser.timpAbsolutExpirareSesiune < newCookieTime
       ) {
         oldUser = await prisma.utilizator.update({
           where: {
@@ -97,13 +115,11 @@ async function updateSesiune(req, res, next) {
           },
           data: {
             IdSessiune: req.sessionID,
-            timpAbsolutExpirareSesiune: result,
+            timpAbsolutExpirareSesiune: newCookieTime,
           },
         });
-        console.log("intrat");
         req.user.IdSessiune = oldUser.IdSessiune;
-        req.user.timpAbsolutExpirareSesiune =
-          oldUser.timpAbsolutExpirareSesiune;
+        req.user.timpAbsolutExpirareSesiune = newCookieTime;
       }
       next();
     } else {
@@ -112,6 +128,7 @@ async function updateSesiune(req, res, next) {
     }
   } catch (error) {
     console.log(error);
+    return error;
   }
 }
 
