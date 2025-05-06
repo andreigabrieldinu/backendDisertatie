@@ -39,6 +39,7 @@ passport.use(
               tiputilizator: tipUtilizator,
               IdSessiune: sessionID,
               timpAbsolutExpirareSesiune: _expires,
+              tichetValidareDeschis: false,
             },
           });
         } catch (error) {

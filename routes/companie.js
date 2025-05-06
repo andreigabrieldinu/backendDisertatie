@@ -51,17 +51,29 @@ const insertCompanie = async (
   return companie;
 };
 
-const getCompanie = async (nume) => {
-  let companie = null;
+const getCompanie = async (nume, email) => {
+  let companieDupaValidare = null;
   try {
-    companie = await prisma.companie.findFirst({ where: { nume: nume } });
+    const utilizator = await prisma.utilizator.findFirst({
+      where: { email: email },
+    });
+    const companie = await prisma.companie.findFirst({ where: { nume: nume } });
+
     if (!companie) {
-      return "Compania nu exista";
+      return "Compania nu exista.";
+    }
+    if (
+      utilizator.tiputilizator === "admin" ||
+      utilizator.idcompanie === companie.idcompanie
+    ) {
+      companieDupaValidare = companie;
+    } else {
+      return "Utilizatorul nu are companie.";
     }
   } catch (error) {
     console.log(error);
   }
-  return companie;
+  return companieDupaValidare;
 };
 
 const getCompanii = async () => {
@@ -73,6 +85,21 @@ const getCompanii = async () => {
     console.log(error);
   }
   return companii;
+};
+
+const updateCompanie = async (nume, data) => {
+  let companie = null;
+  try {
+    companie = await prisma.companie.findFirst({ where: { nume: nume } });
+    let id = companie.idcompanie;
+    companie = await prisma.companie.update({
+      where: { idcompanie: id },
+      data,
+    });
+  } catch (error) {
+    console.log(error);
+  }
+  return companie;
 };
 
 companieRouter.post(
@@ -120,12 +147,15 @@ companieRouter.post(
   }
 );
 
-companieRouter.get("/:nume", async (req, res) => {
+companieRouter.get("/:nume", esteUtilizatorClientSauAdmin, async (req, res) => {
   try {
     const { nume } = { ...req.params };
-    const companie = await getCompanie(nume);
-    if (companie === "Compania nu exista") {
+    const { email } = { ...req.user };
+    const companie = await getCompanie(nume, email);
+    if (companie === "Compania nu exista.") {
       res.status(404).send({ message: "Compania nu exista" });
+    } else if (companie === "Utilizatorul nu are companie.") {
+      res.status(404).send({ message: "Utilizatorul nu are companie" });
     } else {
       res.status(200).send(companie);
     }
@@ -134,48 +164,41 @@ companieRouter.get("/:nume", async (req, res) => {
   }
 });
 
-companieRouter.get("/", async (req, res) => {
-  try {
-    const companii = await getCompanii();
-    if (companii === "Nu exista companii") {
-      res.status(404).send({ message: "Nu exista companii" });
-    } else {
-      res.status(200).send(companii);
+companieRouter.get(
+  "/",
+  //esteUtilizatorAdmin
+  async (req, res) => {
+    try {
+      const companii = await getCompanii();
+      if (companii === "Nu exista companii") {
+        res.status(404).send({ message: "Nu exista companii" });
+      } else {
+        res.status(200).send(companii);
+      }
+    } catch (error) {
+      res.status(500).send(error);
     }
-  } catch (error) {
-    res.status(500).send(error);
   }
-});
+);
 
-const updateCompanie = async (nume, data) => {
-  let companie = null;
-  try {
-    companie = await prisma.companie.findFirst({ where: { nume: nume } });
-    let id = companie.idcompanie;
-    companie = await prisma.companie.update({
-      where: { idcompanie: id },
-      data,
-    });
-  } catch (error) {
-    console.log(error);
-  }
-  return companie;
-};
+companieRouter.patch(
+  "/:nume",
+  //esteUtilizatorAdmin,
+  async (req, res) => {
+    try {
+      const { nume } = { ...req.params };
+      const data = { ...req.body };
 
-companieRouter.patch("/:nume", async (req, res) => {
-  try {
-    const { nume } = { ...req.params };
-    const data = { ...req.body };
-
-    let companie = await updateCompanie(nume, data);
-    if (companie) {
-      res.status(200).send({ message: "Compania a fost actualizata." });
-    } else {
-      res.status(404).send({ message: "Compania nu exista." });
+      let companie = await updateCompanie(nume, data);
+      if (companie) {
+        res.status(200).send({ message: "Compania a fost actualizata." });
+      } else {
+        res.status(404).send({ message: "Compania nu exista." });
+      }
+    } catch (error) {
+      res.status(500).send(error);
     }
-  } catch (error) {
-    res.status(500).send(error);
   }
-});
+);
 
 export { companieRouter };

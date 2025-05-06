@@ -112,6 +112,7 @@ model utilizator {
   specializare                                       Int?
   IdSessiune                                         String?       @db.VarChar(40)
   timpAbsolutExpirareSesiune                         DateTime?     @db.Timestamp(6)
+  tichetValidareDeschis                              Boolean?
   tichet_tichet_idsuportToutilizator                 tichet[]      @relation("tichet_idsuportToutilizator")
   tichet_tichet_idutilizatorToutilizator             tichet[]      @relation("tichet_idutilizatorToutilizator")
   companie                                           companie?     @relation(fields: [idcompanie], references: [idcompanie], onDelete: NoAction, onUpdate: NoAction)

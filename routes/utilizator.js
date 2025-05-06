@@ -7,22 +7,27 @@ const saltRounds = 10;
 const utilizatorRouter = express.Router();
 
 async function esteUtilizatorAdmin(req, res, next) {
-  if (!req.user.message) {
-    if (req.user.tiputilizator === "admin") {
-      const userDinDB = await prisma.utilizator.findFirst({
-        where: {
-          idutilizator: req.user.idutilizator,
-        },
-      });
-      if (userDinDB.IdSessiune !== req.user.IdSessiune) {
-        res.sendStatus(401);
+  try {
+    if (!req.user.message) {
+      if (req.user.tiputilizator === "admin") {
+        const userDinDB = await prisma.utilizator.findFirst({
+          where: {
+            idutilizator: req.user.idutilizator,
+          },
+        });
+        if (userDinDB.IdSessiune !== req.user.IdSessiune) {
+          res.sendStatus(401);
+        } else {
+          next();
+        }
       } else {
-        next();
+        res.sendStatus(403);
       }
     } else {
-      res.sendStatus(403);
+      res.sendStatus(401);
     }
-  } else {
+  } catch (error) {
+    console.log(error);
     res.sendStatus(401);
   }
 }
@@ -52,9 +57,31 @@ async function esteUtilizatorClientSauAdmin(req, res, next) {
     }
   } catch (error) {
     req.sesiuneExipirata = true;
-    next();
+    console.log(error);
+    res.sendStatus(401);
   }
 }
+
+const updateLegareCompanie = async (email, numeCompanie) => {
+  let utilizator = null;
+  try {
+    let companie = await prisma.companie.findFirst({
+      where: { nume: numeCompanie },
+    });
+    if (!companie) {
+      return "Compania nu exista";
+    }
+    utilizator = await prisma.utilizator.update({
+      where: { email: email },
+      data: {
+        idcompanie: companie.idcompanie,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+  }
+  return utilizator;
+};
 
 utilizatorRouter.get(
   "/google/auth",
@@ -84,6 +111,7 @@ utilizatorRouter.post("/inregistrare", async (req, res) => {
           pozaprofil: pozaprofil,
           datacreare: data,
           tiputilizator: tipUtilizator,
+          tichetValidareDeschis: false,
         },
       });
       res.status(201).send({ message: "Utilizatorul a fost inregistrat" });
@@ -159,6 +187,7 @@ utilizatorRouter.get(
         prenume: req.user.prenume,
         pozaprofil: req.user.pozaprofil,
         idcompanie: req.user.idcompanie,
+        tichetValidareDeschis: req.user.tichetValidareDeschis,
       };
       res.status(200).send(userToSend);
     } else {
@@ -192,5 +221,72 @@ utilizatorRouter.get("/logout", (req, res) => {
   });
   res.status(200).send({ message: "Utilizatorul a fost deconectat" });
 });
+
+utilizatorRouter.patch(
+  "/:email/legareCompanie",
+  //esteUtilizatorAdmin,
+  async (req, res) => {
+    const { email } = { ...req.params };
+    const { numeCompanie } = { ...req.body };
+    try {
+      let utilizator = await updateLegareCompanie(email, numeCompanie);
+      if (utilizator === "Compania nu exista") {
+        res.status(404).send({ message: "Compania nu exista" });
+      } else {
+        res.status(200).send({
+          message: `Utilizatorul a fost asignat companiei "${numeCompanie}"`,
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      res.status(500).send(error);
+    }
+  }
+);
+
+const updateLegareSpecializareSiAdmin = async (email, specializare) => {
+  let utilizator = null;
+  try {
+    const specializareDB = await prisma.specializare.findFirst({
+      where: { nume: specializare },
+    });
+    if (!specializareDB) {
+      return "Specializarea nu exista.";
+    }
+    utilizator = await prisma.utilizator.update({
+      where: {
+        email: email,
+      },
+      data: {
+        tiputilizator: "admin",
+        specializare: specializareDB.idspecializare,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+  }
+  return utilizator;
+};
+
+utilizatorRouter.patch(
+  "/:email/legareSpecializare",
+  esteUtilizatorAdmin,
+  async (req, res) => {
+    const { email } = { ...req.params };
+    const { specializare } = { ...req.body };
+    try {
+      const user = await updateLegareSpecializareSiAdmin(email, specializare);
+      if (user === "Specializarea nu exista.") {
+        res.status(404).send({ message: "Specializarea nu exista." });
+      } else {
+        res.status(200).send({
+          message: `Specializarea ${specializare} a fost asignata contului ${email}`,
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+);
 
 export { utilizatorRouter, esteUtilizatorClientSauAdmin, esteUtilizatorAdmin };
