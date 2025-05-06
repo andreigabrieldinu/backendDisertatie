@@ -36,6 +36,17 @@ const insertEchipaCompanie = async (nume) => {
   return echipaCompanie;
 };
 
+const getAllEchipe = async () => {
+  let echipe = null;
+  try {
+    echipe = await prisma.echipacompanie.findMany();
+    if (!echipe) return "Nu exista echipe";
+  } catch (error) {
+    console.log(error);
+  }
+  return echipe;
+};
+
 const getEchipaCompanie = async (nume) => {
   let echipaCompanie = null;
   try {
@@ -75,9 +86,24 @@ echipaCompanieRouter.post(
       } else {
         res.status(201).send({ message: "Echipa a fost creata." });
       }
-    } catch (error) {}
+    } catch (error) {
+      res.status(500).send(error);
+    }
   }
 );
+
+echipaCompanieRouter.get("/", async (req, res) => {
+  try {
+    const echipe = await getAllEchipe();
+    if (echipe) {
+      res.status(200).send(echipe);
+    } else {
+      res.status(404).send({ message: "Nu exista echipe." });
+    }
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
 
 echipaCompanieRouter.get(
   "/:nume",
@@ -113,4 +139,4 @@ echipaCompanieRouter.delete(
   }
 );
 
-export { echipaCompanieRouter };
+export { echipaCompanieRouter, getEchipaCompanie };

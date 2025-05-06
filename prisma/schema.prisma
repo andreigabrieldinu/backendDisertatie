@@ -17,6 +17,7 @@ model companie {
   notitedesprecompanie String?
   tipsubscriptie       String?         @db.VarChar(30)
   idechipa             Int?
+  PretLunarFocus       Int?
   echipacompanie       echipacompanie? @relation(fields: [idechipa], references: [idechipa], onDelete: NoAction, onUpdate: NoAction)
   subscriptie          subscriptie?    @relation(fields: [tipsubscriptie], references: [tip], onDelete: NoAction, onUpdate: NoAction)
   utilizator           utilizator[]
@@ -72,6 +73,7 @@ model subscriptie {
   timpraspunsp2         String     @db.VarChar(4)
   timpraspunsp3         String     @db.VarChar(4)
   timpraspunsp4         String     @db.VarChar(4)
+  PretLunar             Int        @default(10000)
   companie              companie[]
 }
 

@@ -1,5 +1,6 @@
 import express from "express";
 import prisma from "../prisma/prismaClient.js";
+import { getEchipaCompanie } from "./echipaCompanie.js";
 import {
   esteUtilizatorAdmin,
   esteUtilizatorClientSauAdmin,
@@ -7,24 +8,33 @@ import {
 
 const membruEchipaRouter = express.Router();
 
-const insertMembruEchipa = async (nume, prenume, rol, email, idEchipa) => {
+const insertMembruEchipa = async (nume, prenume, rol, email, numeEchipa) => {
   let membruEchipa = null;
   try {
     membruEchipa = await prisma.membruechipa.findFirst({
-      where: { nume: nume },
+      where: { email: email },
     });
     if (membruEchipa) {
       return "Membrul echipei deja exista";
     } else {
-      membruEchipa = await prisma.membruechipa.create({
-        data: {
-          nume: nume,
-          prenume: prenume,
-          email: email,
-          rol: rol,
-          idechipa: idEchipa,
-        },
-      });
+      if (numeEchipa) {
+        let echipa = await getEchipaCompanie(numeEchipa);
+        if (echipa) {
+          membruEchipa = await prisma.membruechipa.create({
+            data: {
+              nume: nume,
+              prenume: prenume,
+              email: email,
+              rol: rol,
+              idechipa: echipa.idechipa,
+            },
+          });
+        } else {
+          return "Nu exista aceasta echipa";
+        }
+      } else {
+        return "Adaugati un nume de echipa";
+      }
     }
   } catch (error) {
     console.log(error);
@@ -33,18 +43,16 @@ const insertMembruEchipa = async (nume, prenume, rol, email, idEchipa) => {
   return membruEchipa;
 };
 
-const getMembriEchipa = async (idEchipa) => {
+const getMembriEchipa = async (numeEchipa) => {
   let membriEchipa = null;
   try {
-    const echipa = await prisma.echipacompanie.findFirst({
-      where: { idechipa: idEchipa },
-    });
+    const echipa = await getEchipaCompanie(numeEchipa);
 
     if (!echipa) {
       return "Aceasta echipa nu exista";
     } else {
       membriEchipa = await prisma.membruechipa.findMany({
-        where: { idechipa: idEchipa },
+        where: { idechipa: echipa.idEchipa },
       });
     }
   } catch (error) {
@@ -79,8 +87,9 @@ const deleteMembruEchipa = async (email) => {
     });
     if (membruEchipa) {
       await prisma.membruechipa.delete({
-        where: { idechipa: membruEchipa.idechipa },
+        where: { email: membruEchipa.email },
       });
+      return "Membrul echipei a fost sters";
     } else {
       return "Membrul echipei nu exista";
     }
@@ -95,18 +104,26 @@ membruEchipaRouter.post(
   //esteUtilizatorAdmin,
   async (req, res) => {
     try {
-      const { nume, prenume, rol, email, idEchipa } = { ...req.body };
+      const { nume, prenume, rol, email, numeEchipa } = { ...req.body };
       let membruEchipa = await insertMembruEchipa(
         nume,
         prenume,
         rol,
         email,
-        idEchipa
+        numeEchipa
       );
-      if (membruEchipa === "Membrul echipei deja exista") {
-        res.status(409).send({ message: "Membrul echipei deja exista" });
-      } else {
-        res.status(201).send({ message: "Membrul echipei a fost creat" });
+      switch (membruEchipa) {
+        case "Aceasta echipa nu exista":
+          res.status(404).send({ message: "Aceasta echipa nu exista" });
+          break;
+        case "Membrul echipei deja exista":
+          res.status(409).send({ message: "Membrul echipei deja exista" });
+          break;
+        case "Adaugati un nume de echipa":
+          res.status(400).send({ message: "Adaugati un nume de echipa" });
+          break;
+        default:
+          res.status(201).send(membruEchipa);
       }
     } catch (error) {
       res.status(500).send(error);
@@ -115,12 +132,12 @@ membruEchipaRouter.post(
 );
 
 membruEchipaRouter.get(
-  "/:idEchipa",
+  "/:numeEchipa",
   //esteUtilizatorAdmin
   async (req, res) => {
     try {
-      const { idEchipa } = { ...req.params };
-      const membriEchipa = await getMembriEchipa(idEchipa);
+      const { numeEchipa } = { ...req.params };
+      const membriEchipa = await getMembriEchipa(numeEchipa);
       if (membriEchipa === "Aceasta echipa nu exista") {
         res.status(404).send({ message: "Aceasta echipa nu exista" });
       } else {
@@ -160,7 +177,7 @@ membruEchipaRouter.delete(
       if (membruEchipa === "Membrul echipei nu exista") {
         res.status(404).send({ message: "Membrul echipei nu exista" });
       } else {
-        res.status(200).send(membruEchipa);
+        res.status(200).send({ message: membruEchipa });
       }
     } catch (error) {
       res.status(500).send(error);

@@ -96,8 +96,6 @@ utilizatorRouter.post("/inregistrare", async (req, res) => {
 });
 
 async function updateSesiune(req, res, next) {
-  console.log("USER", req.user);
-
   try {
     if (req.user) {
       let oldUser = await prisma.utilizator.findFirst({
@@ -138,7 +136,6 @@ utilizatorRouter.post(
   updateSesiune,
   async (req, res) => {
     try {
-      console.log("DIN REQ", req.user.message);
       if (req.user.message === "Utilizator sau parola gresita") {
         res.status(401).send({ message: "Utilizator sau parola gresite" });
       } else {

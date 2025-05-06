@@ -13,7 +13,8 @@ const createSubscriptie = async (
   timpRaspunsP1,
   timpRaspunsP2,
   timpRaspunsP3,
-  timpRaspunsP4
+  timpRaspunsP4,
+  pretLunar
 ) => {
   let subscriptie = null;
   try {
@@ -34,6 +35,7 @@ const createSubscriptie = async (
           timpraspunsp2: timpRaspunsP2,
           timpraspunsp3: timpRaspunsP3,
           timpraspunsp4: timpRaspunsP4,
+          PretLunar: pretLunar,
         },
       });
     } catch (error) {
@@ -81,6 +83,7 @@ const updateSubscriptii = async (tip, data) => {
   let timpRaspunsP2 = subscriptieVeche.timpraspunsp2;
   let timpRaspunsP3 = subscriptieVeche.timpraspunsp3;
   let timpRaspunsP4 = subscriptieVeche.timpraspunsp4;
+  let pretLunar = subscriptieVeche.PretLunar;
 
   if (data) {
     if (data.numarMaximUtilizatori)
@@ -89,6 +92,7 @@ const updateSubscriptii = async (tip, data) => {
     if (data.timpRaspunsP2) timpRaspunsP2 = data.timpRaspunsP2;
     if (data.timpRaspunsP3) timpRaspunsP3 = data.timpRaspunsP3;
     if (data.timpRaspunsP4) timpRaspunsP4 = data.timpRaspunsP4;
+    if (data.PretLunar) pretLunar = data.PretLunar;
   }
   let subscriptie = null;
   try {
@@ -102,6 +106,7 @@ const updateSubscriptii = async (tip, data) => {
         timpraspunsp2: timpRaspunsP2,
         timpraspunsp3: timpRaspunsP3,
         timpraspunsp4: timpRaspunsP4,
+        PretLunar: pretLunar,
       },
     });
   } catch (error) {
@@ -132,6 +137,7 @@ subscriptieRouter.post(
         timpRaspunsP2,
         timpRaspunsP3,
         timpRaspunsP4,
+        pretLunar,
       } = { ...req.body };
       const subscriptie = await createSubscriptie(
         tip,
@@ -139,7 +145,8 @@ subscriptieRouter.post(
         timpRaspunsP1,
         timpRaspunsP2,
         timpRaspunsP3,
-        timpRaspunsP4
+        timpRaspunsP4,
+        pretLunar
       );
       if (subscriptie === "Subscriptia deja exista.") {
         res.status(409).send({ message: "Subscriptia deja exista." });
@@ -226,4 +233,4 @@ subscriptieRouter.delete(
   }
 );
 
-export { subscriptieRouter };
+export { subscriptieRouter, getSubscriptie };
