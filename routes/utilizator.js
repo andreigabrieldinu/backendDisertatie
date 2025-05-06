@@ -56,7 +56,7 @@ async function esteUtilizatorClientSauAdmin(req, res, next) {
       res.sendStatus(401);
     }
   } catch (error) {
-    req.sesiuneExipirata = true;
+    req.sesiuneExpirata = true;
     console.log(error);
     res.sendStatus(401);
   }
