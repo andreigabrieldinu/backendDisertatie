@@ -47,12 +47,11 @@ const getMembriEchipa = async (numeEchipa) => {
   let membriEchipa = null;
   try {
     const echipa = await getEchipaCompanie(numeEchipa);
-
     if (!echipa) {
       return "Aceasta echipa nu exista";
     } else {
       membriEchipa = await prisma.membruechipa.findMany({
-        where: { idechipa: echipa.idEchipa },
+        where: { idechipa: Number(echipa.idechipa) },
       });
     }
   } catch (error) {
@@ -132,12 +131,12 @@ membruEchipaRouter.post(
 );
 
 membruEchipaRouter.get(
-  "/:numeEchipa",
+  "/:id",
   //esteUtilizatorAdmin
   async (req, res) => {
     try {
-      const { numeEchipa } = { ...req.params };
-      const membriEchipa = await getMembriEchipa(numeEchipa);
+      const { id } = { ...req.params };
+      const membriEchipa = await getMembriEchipa(id);
       if (membriEchipa === "Aceasta echipa nu exista") {
         res.status(404).send({ message: "Aceasta echipa nu exista" });
       } else {
@@ -150,7 +149,7 @@ membruEchipaRouter.get(
 );
 
 membruEchipaRouter.get(
-  "/:email",
+  "/membru/:email",
   //esteUtilizatorAdmin
   async (req, res) => {
     try {

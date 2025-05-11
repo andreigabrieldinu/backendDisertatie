@@ -57,7 +57,6 @@ async function esteUtilizatorClientSauAdmin(req, res, next) {
     }
   } catch (error) {
     req.sesiuneExpirata = true;
-    console.log(error);
     res.sendStatus(401);
   }
 }
@@ -167,7 +166,17 @@ utilizatorRouter.post(
       if (req.user.message === "Utilizator sau parola gresita") {
         res.status(401).send({ message: "Utilizator sau parola gresite" });
       } else {
-        res.status(200).send({ message: "Utilizator logat cu succes." });
+        res.status(200).send({
+          idutilizator: req.user.idutilizator,
+          email: req.user.email,
+          nume: req.user.nume,
+          prenume: req.user.prenume,
+          pozaprofil: req.user.pozaprofil,
+          idcompanie: req.user.idcompanie,
+          tichetValidareDeschis: req.user.tichetValidareDeschis,
+          tipUtilizator: req.user.tiputilizator,
+          specializare: req.user.specializare,
+        });
       }
     } catch (error) {
       res.status(500).send(error);
@@ -188,6 +197,8 @@ utilizatorRouter.get(
         pozaprofil: req.user.pozaprofil,
         idcompanie: req.user.idcompanie,
         tichetValidareDeschis: req.user.tichetValidareDeschis,
+        tipUtilizator: req.user.tiputilizator,
+        specializare: req.user.specializare,
       };
       res.status(200).send(userToSend);
     } else {

@@ -51,13 +51,16 @@ const insertCompanie = async (
   return companie;
 };
 
-const getCompanie = async (nume, email) => {
+const getCompanie = async (id, email) => {
   let companieDupaValidare = null;
+  id = Number(id);
   try {
     const utilizator = await prisma.utilizator.findFirst({
       where: { email: email },
     });
-    const companie = await prisma.companie.findFirst({ where: { nume: nume } });
+    const companie = await prisma.companie.findUnique({
+      where: { idcompanie: id },
+    });
 
     if (!companie) {
       return "Compania nu exista.";
@@ -66,7 +69,7 @@ const getCompanie = async (nume, email) => {
       utilizator.tiputilizator === "admin" ||
       utilizator.idcompanie === companie.idcompanie
     ) {
-      companieDupaValidare = companie;
+      companieDupaValidare = { ...companie };
     } else {
       return "Utilizatorul nu are companie.";
     }
@@ -147,11 +150,11 @@ companieRouter.post(
   }
 );
 
-companieRouter.get("/:nume", esteUtilizatorClientSauAdmin, async (req, res) => {
+companieRouter.get("/:id", esteUtilizatorClientSauAdmin, async (req, res) => {
   try {
-    const { nume } = { ...req.params };
+    const { id } = { ...req.params };
     const { email } = { ...req.user };
-    const companie = await getCompanie(nume, email);
+    const companie = await getCompanie(id, email);
     if (companie === "Compania nu exista.") {
       res.status(404).send({ message: "Compania nu exista" });
     } else if (companie === "Utilizatorul nu are companie.") {

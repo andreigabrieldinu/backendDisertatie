@@ -47,12 +47,12 @@ const getAllEchipe = async () => {
   return echipe;
 };
 
-const getEchipaCompanie = async (nume) => {
+const getEchipaCompanie = async (id) => {
   let echipaCompanie = null;
   try {
-    echipaCompanie = await prisma.echipacompanie.findFirst({
+    echipaCompanie = await prisma.echipacompanie.findUnique({
       where: {
-        nume: nume,
+        idechipa: Number(id),
       },
     });
     if (!echipaCompanie) return "Echipa nu exista";
@@ -66,7 +66,7 @@ const deleteEchipaCompanie = async (idEchipa) => {
   let echipaCompanie = null;
   try {
     echipaCompanie = await prisma.echipacompanie.delete({
-      where: { idechipa: idEchipa },
+      where: { idechipa: Number(idEchipa) },
     });
   } catch (error) {
     console.log(error);
@@ -92,50 +92,56 @@ echipaCompanieRouter.post(
   }
 );
 
-echipaCompanieRouter.get("/", async (req, res) => {
-  try {
-    const echipe = await getAllEchipe();
-    if (echipe) {
-      res.status(200).send(echipe);
-    } else {
-      res.status(404).send({ message: "Nu exista echipe." });
-    }
-  } catch (error) {
-    res.status(500).send(error);
-  }
-});
-
 echipaCompanieRouter.get(
-  "/:nume",
+  "/",
   //esteUtilizatorAdmin
   async (req, res) => {
     try {
-      const { nume } = { ...req.params };
-      let echipaCompanie = await getEchipaCompanie(nume);
+      const echipe = await getAllEchipe();
+      if (echipe) {
+        res.status(200).send(echipe);
+      } else {
+        res.status(404).send({ message: "Nu exista echipe." });
+      }
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  }
+);
+
+echipaCompanieRouter.get(
+  "/:id",
+  //esteUtilizatorClientSauAdmin,
+  async (req, res) => {
+    try {
+      const { id } = { ...req.params };
+      let echipaCompanie = await getEchipaCompanie(id);
       if (echipaCompanie) res.status(200).send(echipaCompanie);
       else {
         res.status(404).send({ message: "Echipa nu exista." });
       }
-    } catch (error) {}
+    } catch (error) {
+      res.status(500).send(error);
+    }
   }
 );
 
 echipaCompanieRouter.delete(
-  "/:nume",
+  "/:id",
   //esteUtilizatorAdmin
   async (req, res) => {
     try {
-      const { nume } = { ...req.params };
-      let echipaCompanie = await prisma.echipacompanie.findFirst({
-        where: { nume: nume },
-      });
+      const { id } = { ...req.params };
+      let echipaCompanie = await deleteEchipaCompanie(id);
       if (!echipaCompanie) {
         res.status(404).send({ message: "Echipa nu exista" });
       } else {
         await deleteEchipaCompanie(echipaCompanie.idechipa);
         res.status(200).send({ message: "Echipa a fost stearsa." });
       }
-    } catch (error) {}
+    } catch (error) {
+      res.status(500).send(error);
+    }
   }
 );
 
