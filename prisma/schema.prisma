@@ -82,19 +82,22 @@ model tichet {
   titlu                                      String          @db.VarChar(80)
   tiptichet                                  String          @db.VarChar(20)
   prioritate                                 String          @db.Char(2)
-  datacreare                                 DateTime        @db.Date
-  datainchidere                              DateTime        @db.Date
-  statuscurent                               String          @db.VarChar(50)
+  datacreare                                 DateTime        @db.Timestamp(6)
+  datainchidere                              DateTime        @db.Timestamp(6)
   consultdeschis                             Boolean
   bugdeschis                                 Boolean
   produs                                     String          @db.VarChar(50)
-  escaladat                                  Boolean
+  escalat                                    Boolean
   idsuport                                   Int
   idutilizator                               Int
   linkdocs                                   String?
   linkdrive                                  String?
+  notite                                     String
+  specializare                               String          @db.VarChar(30)
+  idStatus                                   Int
   istorictichet                              istorictichet[]
   mesaje                                     mesaje[]
+  statustichete                              statustichete   @relation(fields: [idStatus], references: [idstatus], onDelete: NoAction, onUpdate: NoAction, map: "tichet_idstatus_fkey")
   utilizator_tichet_idsuportToutilizator     utilizator      @relation("tichet_idsuportToutilizator", fields: [idsuport], references: [idutilizator], onDelete: NoAction, onUpdate: NoAction)
   utilizator_tichet_idutilizatorToutilizator utilizator      @relation("tichet_idutilizatorToutilizator", fields: [idutilizator], references: [idutilizator], onDelete: NoAction, onUpdate: NoAction)
 }
@@ -124,4 +127,10 @@ model produse {
   nume           String       @db.VarChar(30)
   idspecializare Int
   specializare   specializare @relation(fields: [idspecializare], references: [idspecializare], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model statustichete {
+  idstatus Int      @id @default(autoincrement())
+  nume     String?  @db.VarChar(40)
+  tichet   tichet[]
 }

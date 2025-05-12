@@ -70,12 +70,36 @@ const updateLegareCompanie = async (email, numeCompanie) => {
     if (!companie) {
       return "Compania nu exista";
     }
-    utilizator = await prisma.utilizator.update({
-      where: { email: email },
-      data: {
-        idcompanie: companie.idcompanie,
+
+    let subscriptie = await prisma.subscriptie.findFirst({
+      where: {
+        tip: companie.tipsubscriptie,
       },
     });
+
+    let countUtilizatoriPeCompanie = await prisma.utilizator.groupBy({
+      by: ["idcompanie"],
+      where: {
+        idcompanie: companie.idcompanie,
+      },
+      _count: {
+        idcompanie: true,
+      },
+    });
+
+    if (
+      subscriptie.numarmaximutilizatori >
+      countUtilizatoriPeCompanie[0]._count.idcompanie
+    ) {
+      utilizator = await prisma.utilizator.update({
+        where: { email: email },
+        data: {
+          idcompanie: companie.idcompanie,
+        },
+      });
+    } else {
+      return "Numarul maxim de utilizatori pentru aceasta companie a fost atins";
+    }
   } catch (error) {
     console.log(error);
   }
@@ -243,10 +267,19 @@ utilizatorRouter.patch(
       let utilizator = await updateLegareCompanie(email, numeCompanie);
       if (utilizator === "Compania nu exista") {
         res.status(404).send({ message: "Compania nu exista" });
-      } else {
-        res.status(200).send({
-          message: `Utilizatorul a fost asignat companiei "${numeCompanie}"`,
+      } else if (
+        utilizator ===
+        "Numarul maxim de utilizatori pentru aceasta companie a fost atins"
+      ) {
+        res.status(409).send({
+          message: `Numarul maxim de utilizatori pentru aceasta companie a fost atins`,
         });
+      } else {
+        {
+          res.status(200).send({
+            message: `Utilizatorul a fost asignat companiei "${numeCompanie}"`,
+          });
+        }
       }
     } catch (error) {
       console.log(error);

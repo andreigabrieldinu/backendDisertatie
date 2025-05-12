@@ -20,7 +20,7 @@ rootRouter.use("/companie", companieRouter);
 rootRouter.use("/echipaCompanie", echipaCompanieRouter);
 rootRouter.use("/membruEchipa", membruEchipaRouter);
 rootRouter.use("/mesaj", mesajRouter);
-rootRouter.use("/tichet", tichetRouter);
+rootRouter.use("/tichete", tichetRouter);
 rootRouter.use("/istoricTichet", istoricTichetRouter);
 
 export { rootRouter };

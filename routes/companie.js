@@ -71,7 +71,7 @@ const getCompanie = async (id, email) => {
     ) {
       companieDupaValidare = { ...companie };
     } else {
-      return "Utilizatorul nu are companie.";
+      return "Utilizatorul nu are permisiune sa vada compania.";
     }
   } catch (error) {
     console.log(error);
@@ -157,8 +157,12 @@ companieRouter.get("/:id", esteUtilizatorClientSauAdmin, async (req, res) => {
     const companie = await getCompanie(id, email);
     if (companie === "Compania nu exista.") {
       res.status(404).send({ message: "Compania nu exista" });
-    } else if (companie === "Utilizatorul nu are companie.") {
-      res.status(404).send({ message: "Utilizatorul nu are companie" });
+    } else if (
+      companie === "Utilizatorul nu are permisiune sa vada compania."
+    ) {
+      res
+        .status(404)
+        .send({ message: "Utilizatorul nu are permisiune sa vada compania." });
     } else {
       res.status(200).send(companie);
     }
@@ -204,4 +208,4 @@ companieRouter.patch(
   }
 );
 
-export { companieRouter };
+export { companieRouter, getCompanie };
