@@ -33,8 +33,8 @@ model echipacompanie {
 model istorictichet {
   idistoric  Int      @id @default(autoincrement())
   idtichet   Int
-  datacreare DateTime @db.Date
-  modificare String   @db.VarChar(50)
+  datacreare DateTime @db.Timestamp(6)
+  modificare String?  @db.VarChar(200)
   tichet     tichet   @relation(fields: [idtichet], references: [idtichet], onDelete: NoAction, onUpdate: NoAction)
 }
 
@@ -69,10 +69,10 @@ model specializare {
 model subscriptie {
   tip                   String     @id @db.VarChar(30)
   numarmaximutilizatori Int
-  timpraspunsp1         String     @db.VarChar(4)
-  timpraspunsp2         String     @db.VarChar(4)
-  timpraspunsp3         String     @db.VarChar(4)
-  timpraspunsp4         String     @db.VarChar(4)
+  p1                    String     @db.VarChar(4)
+  p2                    String     @db.VarChar(4)
+  p3                    String     @db.VarChar(4)
+  p4                    String     @db.VarChar(4)
   PretLunar             Int        @default(10000)
   companie              companie[]
 }
@@ -83,7 +83,7 @@ model tichet {
   tiptichet                                  String          @db.VarChar(20)
   prioritate                                 String          @db.Char(2)
   datacreare                                 DateTime        @db.Timestamp(6)
-  datainchidere                              DateTime        @db.Timestamp(6)
+  datainchidere                              DateTime?       @db.Timestamp(6)
   consultdeschis                             Boolean
   bugdeschis                                 Boolean
   produs                                     String          @db.VarChar(50)
@@ -93,11 +93,11 @@ model tichet {
   linkdocs                                   String?
   linkdrive                                  String?
   notite                                     String
-  specializare                               String          @db.VarChar(30)
-  idStatus                                   Int
+  idstatus                                   Int
+  idspecializare                             Int             @default(0)
+  timpPentruRaspuns                          DateTime?       @db.Timestamp(6)
   istorictichet                              istorictichet[]
   mesaje                                     mesaje[]
-  statustichete                              statustichete   @relation(fields: [idStatus], references: [idstatus], onDelete: NoAction, onUpdate: NoAction, map: "tichet_idstatus_fkey")
   utilizator_tichet_idsuportToutilizator     utilizator      @relation("tichet_idsuportToutilizator", fields: [idsuport], references: [idutilizator], onDelete: NoAction, onUpdate: NoAction)
   utilizator_tichet_idutilizatorToutilizator utilizator      @relation("tichet_idutilizatorToutilizator", fields: [idutilizator], references: [idutilizator], onDelete: NoAction, onUpdate: NoAction)
 }
@@ -130,7 +130,6 @@ model produse {
 }
 
 model statustichete {
-  idstatus Int      @id @default(autoincrement())
-  nume     String?  @db.VarChar(40)
-  tichet   tichet[]
+  idstatus Int     @id @default(autoincrement())
+  nume     String? @db.VarChar(40)
 }

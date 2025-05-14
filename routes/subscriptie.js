@@ -31,10 +31,10 @@ const createSubscriptie = async (
         data: {
           tip: tip,
           numarmaximutilizatori: nrMaxUtilizatori,
-          timpraspunsp1: timpRaspunsP1,
-          timpraspunsp2: timpRaspunsP2,
-          timpraspunsp3: timpRaspunsP3,
-          timpraspunsp4: timpRaspunsP4,
+          p1: timpRaspunsP1,
+          p2: timpRaspunsP2,
+          p3: timpRaspunsP3,
+          p4: timpRaspunsP4,
           PretLunar: pretLunar,
         },
       });
@@ -79,19 +79,19 @@ const updateSubscriptii = async (tip, data) => {
     console.log(error);
   }
   let numarMaximUtilizatori = subscriptieVeche.numarmaximutilizatori;
-  let timpRaspunsP1 = subscriptieVeche.timpraspunsp1;
-  let timpRaspunsP2 = subscriptieVeche.timpraspunsp2;
-  let timpRaspunsP3 = subscriptieVeche.timpraspunsp3;
-  let timpRaspunsP4 = subscriptieVeche.timpraspunsp4;
+  let p1 = subscriptieVeche.timpraspunsp1;
+  let p2 = subscriptieVeche.timpraspunsp2;
+  let p3 = subscriptieVeche.timpraspunsp3;
+  let p4 = subscriptieVeche.timpraspunsp4;
   let pretLunar = subscriptieVeche.PretLunar;
 
   if (data) {
     if (data.numarMaximUtilizatori)
       numarMaximUtilizatori = data.numarMaximUtilizatori;
-    if (data.timpRaspunsP1) timpRaspunsP1 = data.timpRaspunsP1;
-    if (data.timpRaspunsP2) timpRaspunsP2 = data.timpRaspunsP2;
-    if (data.timpRaspunsP3) timpRaspunsP3 = data.timpRaspunsP3;
-    if (data.timpRaspunsP4) timpRaspunsP4 = data.timpRaspunsP4;
+    if (data.p1) timpRaspunsP1 = data.p1;
+    if (data.p2) timpRaspunsP2 = data.p2;
+    if (data.p3) timpRaspunsP3 = data.p3;
+    if (data.p4) timpRaspunsP4 = data.p4;
     if (data.PretLunar) pretLunar = data.PretLunar;
   }
   let subscriptie = null;
@@ -102,10 +102,10 @@ const updateSubscriptii = async (tip, data) => {
       },
       data: {
         numarmaximutilizatori: numarMaximUtilizatori,
-        timpraspunsp1: timpRaspunsP1,
-        timpraspunsp2: timpRaspunsP2,
-        timpraspunsp3: timpRaspunsP3,
-        timpraspunsp4: timpRaspunsP4,
+        p1: timpRaspunsP1,
+        p2: timpRaspunsP2,
+        p3: timpRaspunsP3,
+        p4: timpRaspunsP4,
         PretLunar: pretLunar,
       },
     });
@@ -130,22 +130,16 @@ subscriptieRouter.post(
   //esteUtilizatorAdmin,
   async (req, res) => {
     try {
-      const {
-        tip,
-        numarMaximUtilizatori,
-        timpRaspunsP1,
-        timpRaspunsP2,
-        timpRaspunsP3,
-        timpRaspunsP4,
-        pretLunar,
-      } = { ...req.body };
+      const { tip, numarMaximUtilizatori, p1, p2, p3, p4, pretLunar } = {
+        ...req.body,
+      };
       const subscriptie = await createSubscriptie(
         tip,
         numarMaximUtilizatori,
-        timpRaspunsP1,
-        timpRaspunsP2,
-        timpRaspunsP3,
-        timpRaspunsP4,
+        p1,
+        p2,
+        p3,
+        p4,
         pretLunar
       );
       if (subscriptie === "Subscriptia deja exista.") {

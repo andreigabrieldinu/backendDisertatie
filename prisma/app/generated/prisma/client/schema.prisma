@@ -45,7 +45,7 @@ model membruechipa {
   rol            String         @db.VarChar(100)
   email          String         @unique @db.VarChar(50)
   idechipa       Int
-  echipacompanie echipacompanie @relation(fields: [idechipa], references: [idechipa], onDelete: SetNull, onUpdate: NoAction)
+  echipacompanie echipacompanie @relation(fields: [idechipa], references: [idechipa], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model mesaje {
