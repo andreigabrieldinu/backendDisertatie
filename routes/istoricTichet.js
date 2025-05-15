@@ -7,14 +7,50 @@ import {
 
 const istoricTichetRouter = express.Router();
 
-const insertIstoricTichet = async (data) => {};
+const getIstoricTichet = async (idtichet, user) => {
+  try {
+    if (user.tiputilizator === "admin") {
+      let istoric = await prisma.istorictichet.findMany({
+        where: { idtichet: idtichet },
+      });
+      return istoric;
+    } else if (user.tiputilizator === "client") {
+      const tichet = await prisma.tichet.findUnique({
+        where: { idtichet: idtichet },
+      });
+      if (user.idutilizator === tichet.idutilizator) {
+        let istoric = await prisma.istorictichet.findMany({
+          where: { idtichet: idtichet },
+        });
+        return istoric;
+      } else {
+        return "Utilizatorul poate vedea doar istoricul tichetelor sale.";
+      }
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
 
-istoricTichetRouter.post(
-  "/",
+istoricTichetRouter.get(
+  "/:idtichet/istoric",
   //esteUtilizatorClientSauAdmin,
+
   async (req, res) => {
     try {
-      console.log(req);
+      const { idtichet } = { ...req.params };
+      const { user } = { ...req };
+      let istoricTichet = await getIstoricTichet(Number(idtichet), user);
+      if (
+        istoricTichet ===
+        "Utilizatorul poate vedea doar istoricul tichetelor sale."
+      ) {
+        res.status(403).send({
+          message: "Utilizatorul poate vedea doar istoricul tichetelor sale.",
+        });
+      } else {
+        res.status(200).send(istoricTichet);
+      }
     } catch (error) {
       res.status(500).send(error);
     }

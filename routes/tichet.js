@@ -59,7 +59,8 @@ const insertTichet = async (
   produs,
   notite,
   specializare,
-  user
+  user,
+  idtichetparinte
 ) => {
   let tichet = null;
 
@@ -80,7 +81,6 @@ const insertTichet = async (
         tiptichet: tipTichet,
         prioritate: prioritate,
         datacreare: dataCreare,
-        consultdeschis: false,
         bugdeschis: false,
         produs: produs,
         escalat: false,
@@ -102,10 +102,9 @@ const insertTichet = async (
       });
       return "Tichetul a fost creat cu succes cu detaliile primite";
     } else if (
-      (user.idcompanie &&
-        user.tichetValidareDeschis &&
-        user.tiputilizator === "client") ||
-      user.tiputilizator === "admin"
+      user.idcompanie &&
+      user.tichetValidareDeschis &&
+      user.tiputilizator === "client"
     ) {
       const companie = await prisma.companie.findUnique({
         where: {
@@ -183,19 +182,219 @@ const insertTichet = async (
           data: {
             idtichet: istoicTichet.idtichet,
             datacreare: dataCreare,
-            modificare: `Caz deschis de ${user.email}`,
+            modificare: `Tichet deschis de ${user.email}`,
           },
         });
         return "Tichetul a fost creat cu succes cu detaliile primite";
       }
+    } else if (user.tiputilizator === "admin" && idtichetparinte) {
+      let tichetParinte = await prisma.tichet.findUnique({
+        where: { idtichet: idtichetparinte },
+      });
+      if (tichetParinte.idsuport === user.idutilizator) {
+        let utilizator = await prisma.utilizator.findUnique({
+          where: {
+            idutilizator: tichetParinte.idutilizator,
+          },
+        });
+        let companie = await prisma.companie.findUnique({
+          where: { idcompanie: utilizator.idcompanie },
+        });
+        const subscriptie = await getSubscriptie(companie.tipsubscriptie);
+        let tipTichet = "consult";
+        let dataCreare = new Date().toISOString();
+        let idstatus = 4; // Caz nou
+        let idSuport = await getAdminTicheteMinime(specializare);
+        let timpPtRaspuns = new Date();
+        timpPtRaspuns.setHours(timpPtRaspuns.getHours() + 3);
+        let timpP1;
+        switch (prioritate) {
+          case "P1":
+            timpP1 = Number(subscriptie.p1.substring(0, 1));
+            timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+
+            break;
+          case "P2":
+            if (subscriptie.tip === "Gold" || subscriptie.tip === "Platinum") {
+              timpP1 = Number(subscriptie.p2.substring(0, 1));
+              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+            } else {
+              timpP1 = Number(subscriptie.p2.substring(0, 2));
+              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+            }
+            break;
+          case "P3":
+            if (subscriptie.tip === "Bronze" || subscriptie.tip === "Silver") {
+              timpP1 = Number(subscriptie.p3, substring(0, 1));
+              timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
+            } else {
+              timpP1 = Number(subscriptie.p3.substring(0, 2));
+              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+            }
+            break;
+          default:
+            switch (subscriptie.tip) {
+              case "Gold":
+                timpP1 = Number(subscriptie.p4.substring(0, 2));
+                timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+
+                break;
+              case "Platinum":
+                timpP1 = Number(subscriptie.p4.substring(0, 1));
+                timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+
+              default:
+                timpP1 = Number(subscriptie.p4.substring(0, 1));
+                timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
+                break;
+            }
+        }
+        let data = {
+          titlu: titlu,
+          tiptichet: tipTichet,
+          prioritate: prioritate,
+          datacreare: dataCreare,
+          bugdeschis: false,
+          produs: produs,
+          escalat: false,
+          idsuport: idSuport,
+          idutilizator: user.idutilizator,
+          notite: notite,
+          idspecializare: specializare,
+          idstatus: idstatus,
+          timpPentruRaspuns: timpPtRaspuns,
+          consult: 0,
+        };
+        let istoricTichet = await prisma.tichet.create({ data: data });
+
+        const consult = await prisma.istorictichet.create({
+          data: {
+            idtichet: istoricTichet.idtichet,
+            datacreare: dataCreare,
+            modificare: `Tichet deschis de ${user.email}`,
+          },
+        });
+        await prisma.tichet.update({
+          where: { idtichet: idtichetparinte },
+          data: { consult: istoricTichet.idtichet },
+        });
+        return "Tichetul a fost creat cu succes cu detaliile primite";
+      } else {
+        return "Doar proprietarul cazului poate deschide consult.";
+      }
     } else {
-      return "Clientul nu a fost validat.";
+      return "Tichetul nu a fost creat, lipsesc date pentru completare";
     }
   } catch (error) {
     console.log(error);
   }
 
   return tichet;
+};
+
+const insertBug = async (idtichetparinte, user, body) => {
+  try {
+    if (user.tiputilizator === "admin" && idtichetparinte) {
+      let tichetParinte = await prisma.tichet.findUnique({
+        where: { idtichet: idtichetparinte },
+      });
+      if (tichetParinte.idsuport === user.idutilizator) {
+        let utilizator = await prisma.utilizator.findUnique({
+          where: {
+            idutilizator: tichetParinte.idutilizator,
+          },
+        });
+        let companie = await prisma.companie.findUnique({
+          where: { idcompanie: utilizator.idcompanie },
+        });
+        const subscriptie = await getSubscriptie(companie.tipsubscriptie);
+        let tipTichet = "bug";
+        let dataCreare = new Date().toISOString();
+        let idstatus = 4; // Caz nou
+        let idSuport = await getAdminTicheteMinime(body.specializare);
+        let timpPtRaspuns = new Date();
+        timpPtRaspuns.setHours(timpPtRaspuns.getHours() + 3);
+        let timpP1;
+        switch (body.prioritate) {
+          case "P1":
+            timpP1 = Number(subscriptie.p1.substring(0, 1));
+            timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+            break;
+          case "P2":
+            if (subscriptie.tip === "Gold" || subscriptie.tip === "Platinum") {
+              timpP1 = Number(
+                subscriptie.p2.substring(
+                  0,
+                  subscriptie.tip === "Gold" || subscriptie.tip === "Platinum"
+                    ? 1
+                    : 2
+                )
+              );
+              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+            }
+            break;
+          case "P3":
+            if (subscriptie.tip === "Bronze" || subscriptie.tip === "Silver") {
+              timpP1 = Number(subscriptie.p3, substring(0, 1));
+              timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
+            } else {
+              timpP1 = Number(subscriptie.p3.substring(0, 2));
+              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+            }
+            break;
+          default:
+            switch (subscriptie.tip) {
+              case "Gold":
+                timpP1 = Number(subscriptie.p4.substring(0, 2));
+                timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+
+                break;
+              case "Platinum":
+                timpP1 = Number(subscriptie.p4.substring(0, 1));
+                timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+
+              default:
+                timpP1 = Number(subscriptie.p4.substring(0, 1));
+                timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
+                break;
+            }
+        }
+        let data = {
+          titlu: body.titlu,
+          tiptichet: tipTichet,
+          prioritate: body.prioritate,
+          datacreare: dataCreare,
+          produs: body.produs,
+          escalat: false,
+          idsuport: idSuport,
+          idutilizator: user.idutilizator,
+          notite: body.notite,
+          idspecializare: body.specializare,
+          idstatus: idstatus,
+          timpPentruRaspuns: timpPtRaspuns,
+          consult: 0,
+          bug: 0,
+        };
+        let istoicTichet = await prisma.tichet.create({ data: data });
+        await prisma.tichet.update({
+          where: { idtichet: idtichetparinte },
+          data: { bug: istoicTichet.idtichet },
+        });
+        await prisma.istorictichet.create({
+          data: {
+            idtichet: istoicTichet.idtichet,
+            datacreare: dataCreare,
+            modificare: `Bug deschis de ${user.email}`,
+          },
+        });
+        return "Bugul a fost creat cu succes cu detaliile primite.";
+      } else {
+        return "Doar proprietarul cazului poate deschide bug.";
+      }
+    }
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 const getAllTichete = async () => {
@@ -390,7 +589,9 @@ const updateTichet = async (idtichet, user, body) => {
 };
 
 tichetRouter.post("/", esteUtilizatorClientSauAdmin, async (req, res) => {
-  const { titlu, prioritate, produs, notite, specializare } = { ...req.body };
+  const { titlu, prioritate, produs, notite, specializare, idtichetparinte } = {
+    ...req.body,
+  };
   const user = req.user;
 
   try {
@@ -400,7 +601,8 @@ tichetRouter.post("/", esteUtilizatorClientSauAdmin, async (req, res) => {
       produs,
       notite,
       specializare,
-      user
+      user,
+      idtichetparinte
     );
     switch (tichet) {
       case "Tichetul a fost creat cu succes cu detaliile primite":
@@ -414,6 +616,16 @@ tichetRouter.post("/", esteUtilizatorClientSauAdmin, async (req, res) => {
       case "Clientul nu a fost validat.":
         res.status(409).send({ message: "Clientul nu a fost validat." });
         break;
+      case "Doar proprietarul cazului poate deschide consult.":
+        res.status(403).send({
+          message: "Doar proprietarul cazului poate deschide consult.",
+        });
+        break;
+      default:
+        res.status(403).send({
+          message: "Tichetul nu a fost creat, lipsesc date pentru completare",
+        });
+        break;
     }
   } catch (error) {
     console.log(error);
@@ -426,6 +638,28 @@ tichetRouter.get("/", esteUtilizatorAdmin, async (req, res) => {
     let tichete = await getAllTichete();
     res.status(200).send(tichete);
   } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+tichetRouter.post("/:idtichet/bug", esteUtilizatorAdmin, async (req, res) => {
+  try {
+    const { idtichet } = { ...req.params };
+    const { user } = { ...req };
+    const { body } = { ...req };
+    console.log(body);
+    const tichet = await insertBug(Number(idtichet), user, body);
+    if (tichet === "Doar proprietarul cazului poate deschide bug.") {
+      res
+        .status(403)
+        .send({ message: "Doar proprietarul cazului poate deschide bug." });
+    } else {
+      res.status(200).send({
+        message: "Bugul a fost creat cu succes cu detaliile primite.",
+      });
+    }
+  } catch (error) {
+    console.log(error);
     res.status(500).send(error);
   }
 });
