@@ -5,6 +5,7 @@ import {
   esteUtilizatorClientSauAdmin,
 } from "./utilizator.js";
 import { getSubscriptie } from "./subscriptie.js";
+import e from "express";
 
 const tichetRouter = express.Router();
 
@@ -723,6 +724,121 @@ tichetRouter.patch(
         res.status(403).send({
           message: "Aceasta operatiune nu este permisa pentru clienti.",
         });
+      }
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  }
+);
+
+const insertMesajTichet = async (idtichet, user, mesaj) => {
+  let mesajTichet = null;
+  let emitatorMesaj = null;
+  let dataCreare = new Date().toISOString();
+  try {
+    if (user.tiputilizator === "admin") {
+      emitatorMesaj = "admin";
+      const tichet = await prisma.tichet.findUnique({
+        where: { idtichet: idtichet },
+      });
+      const utilizator = await prisma.utilizator.findUnique({
+        where: { idutilizator: tichet.idutilizator },
+      });
+      mesajTichet = await prisma.mesaje.create({
+        data: {
+          continut: mesaj,
+          idtichet: idtichet,
+          emitatormesaj: emitatorMesaj,
+          datacreare: dataCreare,
+          emailsuport: user.email,
+          emailutilizator: utilizator.email,
+        },
+      });
+    } else {
+      emitatorMesaj = "client";
+      const tichet = await prisma.tichet.findUnique({
+        where: { idtichet: idtichet },
+      });
+      const utilizator = await prisma.utilizator.findUnique({
+        where: { idutilizator: tichet.idsuport },
+      });
+      mesajTichet = await prisma.mesaje.create({
+        data: {
+          continut: mesaj,
+          idtichet: idtichet,
+          emitatormesaj: emitatorMesaj,
+          datacreare: dataCreare,
+          emailutilizator: user.email,
+          emailsuport: utilizator.email,
+        },
+      });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+  return mesajTichet;
+};
+
+tichetRouter.post(
+  "/:idtichet/mesaj",
+  esteUtilizatorClientSauAdmin,
+  async (req, res) => {
+    try {
+      const { idtichet } = { ...req.params };
+      const { user } = { ...req };
+      const { mesaj } = { ...req.body };
+
+      if (mesaj) {
+        await insertMesajTichet(Number(idtichet), user, mesaj);
+        res.status(200).send({ message: "Mesajul a fost trimis cu succes." });
+      } else {
+        res.status(400).send({ message: "Mesajul nu poate fi gol." });
+      }
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  }
+);
+
+const getMesajeTichet = async (idtichet, user) => {
+  let mesaje = null;
+  try {
+    if (user.tiputilizator === "client") {
+      const tichet = await prisma.tichet.findUnique({
+        where: { idtichet: idtichet },
+      });
+      if (tichet.idutilizator !== user.idutilizator) {
+        return "Utilizatorul nu are acces la acest tichet.";
+      } else {
+        mesaje = await prisma.mesaje.findMany({
+          where: { idtichet: idtichet },
+        });
+      }
+    } else {
+      mesaje = await prisma.mesaje.findMany({
+        where: { idtichet: idtichet },
+      });
+    }
+    return mesaje;
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+tichetRouter.get(
+  "/:idtichet/mesaje",
+  esteUtilizatorClientSauAdmin,
+  async (req, res) => {
+    try {
+      const { idtichet } = { ...req.params };
+      const { user } = { ...req };
+      const mesaje = await getMesajeTichet(Number(idtichet), user);
+      if (mesaje === "Utilizatorul nu are acces la acest tichet.") {
+        res.status(403).send({
+          message: "Utilizatorul nu are acces la acest tichet.",
+        });
+      } else {
+        res.status(200).send({ mesaje });
       }
     } catch (error) {
       res.status(500).send(error);

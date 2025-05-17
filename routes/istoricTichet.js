@@ -34,7 +34,7 @@ const getIstoricTichet = async (idtichet, user) => {
 
 istoricTichetRouter.get(
   "/:idtichet/istoric",
-  //esteUtilizatorClientSauAdmin,
+  esteUtilizatorClientSauAdmin,
 
   async (req, res) => {
     try {

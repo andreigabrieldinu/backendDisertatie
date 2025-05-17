@@ -6,7 +6,6 @@ import { subscriptieRouter } from "./subscriptie.js";
 import { echipaCompanieRouter } from "./echipaCompanie.js";
 import { companieRouter } from "./companie.js";
 import { membruEchipaRouter } from "./membruEchipa.js";
-import { mesajRouter } from "./mesaj.js";
 import { tichetRouter } from "./tichet.js";
 import { istoricTichetRouter } from "./istoricTichet.js";
 
@@ -19,7 +18,6 @@ rootRouter.use("/subscriptie", subscriptieRouter);
 rootRouter.use("/companie", companieRouter);
 rootRouter.use("/echipaCompanie", echipaCompanieRouter);
 rootRouter.use("/membruEchipa", membruEchipaRouter);
-rootRouter.use("/mesaj", mesajRouter);
 rootRouter.use("/tichete", tichetRouter);
 rootRouter.use("/istoricTichet", istoricTichetRouter);
 

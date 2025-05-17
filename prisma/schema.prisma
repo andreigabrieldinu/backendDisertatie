@@ -50,7 +50,7 @@ model membruechipa {
 
 model mesaje {
   idmesaj         Int      @id @default(autoincrement())
-  datacreare      DateTime @db.Date
+  datacreare      DateTime @db.Timestamp(6)
   emitatormesaj   String   @db.VarChar(10)
   emailsuport     String   @db.VarChar(50)
   emailutilizator String   @db.VarChar(50)
