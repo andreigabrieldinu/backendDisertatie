@@ -60,8 +60,7 @@ const insertTichet = async (
   produs,
   notite,
   specializare,
-  user,
-  idtichetparinte
+  user
 ) => {
   let tichet = null;
 
@@ -82,7 +81,6 @@ const insertTichet = async (
         tiptichet: tipTichet,
         prioritate: prioritate,
         datacreare: dataCreare,
-        bugdeschis: false,
         produs: produs,
         escalat: false,
         idsuport: idSuport,
@@ -167,8 +165,6 @@ const insertTichet = async (
           tiptichet: tipTichet,
           prioritate: prioritate,
           datacreare: dataCreare,
-          consultdeschis: false,
-          bugdeschis: false,
           produs: produs,
           escalat: false,
           idsuport: idSuport,
@@ -187,101 +183,6 @@ const insertTichet = async (
           },
         });
         return "Tichetul a fost creat cu succes cu detaliile primite";
-      }
-    } else if (user.tiputilizator === "admin" && idtichetparinte) {
-      let tichetParinte = await prisma.tichet.findUnique({
-        where: { idtichet: idtichetparinte },
-      });
-      if (tichetParinte.idsuport === user.idutilizator) {
-        let utilizator = await prisma.utilizator.findUnique({
-          where: {
-            idutilizator: tichetParinte.idutilizator,
-          },
-        });
-        let companie = await prisma.companie.findUnique({
-          where: { idcompanie: utilizator.idcompanie },
-        });
-        const subscriptie = await getSubscriptie(companie.tipsubscriptie);
-        let tipTichet = "consult";
-        let dataCreare = new Date().toISOString();
-        let idstatus = 4; // Caz nou
-        let idSuport = await getAdminTicheteMinime(specializare);
-        let timpPtRaspuns = new Date();
-        timpPtRaspuns.setHours(timpPtRaspuns.getHours() + 3);
-        let timpP1;
-        switch (prioritate) {
-          case "P1":
-            timpP1 = Number(subscriptie.p1.substring(0, 1));
-            timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
-
-            break;
-          case "P2":
-            if (subscriptie.tip === "Gold" || subscriptie.tip === "Platinum") {
-              timpP1 = Number(subscriptie.p2.substring(0, 1));
-              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
-            } else {
-              timpP1 = Number(subscriptie.p2.substring(0, 2));
-              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
-            }
-            break;
-          case "P3":
-            if (subscriptie.tip === "Bronze" || subscriptie.tip === "Silver") {
-              timpP1 = Number(subscriptie.p3, substring(0, 1));
-              timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
-            } else {
-              timpP1 = Number(subscriptie.p3.substring(0, 2));
-              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
-            }
-            break;
-          default:
-            switch (subscriptie.tip) {
-              case "Gold":
-                timpP1 = Number(subscriptie.p4.substring(0, 2));
-                timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
-
-                break;
-              case "Platinum":
-                timpP1 = Number(subscriptie.p4.substring(0, 1));
-                timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
-
-              default:
-                timpP1 = Number(subscriptie.p4.substring(0, 1));
-                timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
-                break;
-            }
-        }
-        let data = {
-          titlu: titlu,
-          tiptichet: tipTichet,
-          prioritate: prioritate,
-          datacreare: dataCreare,
-          bugdeschis: false,
-          produs: produs,
-          escalat: false,
-          idsuport: idSuport,
-          idutilizator: user.idutilizator,
-          notite: notite,
-          idspecializare: specializare,
-          idstatus: idstatus,
-          timpPentruRaspuns: timpPtRaspuns,
-          consult: 0,
-        };
-        let istoricTichet = await prisma.tichet.create({ data: data });
-
-        const consult = await prisma.istorictichet.create({
-          data: {
-            idtichet: istoricTichet.idtichet,
-            datacreare: dataCreare,
-            modificare: `Tichet deschis de ${user.email}`,
-          },
-        });
-        await prisma.tichet.update({
-          where: { idtichet: idtichetparinte },
-          data: { consult: istoricTichet.idtichet },
-        });
-        return "Tichetul a fost creat cu succes cu detaliile primite";
-      } else {
-        return "Doar proprietarul cazului poate deschide consult.";
       }
     } else {
       return "Tichetul nu a fost creat, lipsesc date pentru completare";
@@ -402,6 +303,103 @@ const getAllTichete = async () => {
   return await prisma.tichet.findMany();
 };
 
+const insertConsult = async (idtichetparinte, user, body) => {
+  if (user.tiputilizator === "admin" && idtichetparinte) {
+    let tichetParinte = await prisma.tichet.findUnique({
+      where: { idtichet: idtichetparinte },
+    });
+    if (tichetParinte.idsuport === user.idutilizator) {
+      let utilizator = await prisma.utilizator.findUnique({
+        where: {
+          idutilizator: tichetParinte.idutilizator,
+        },
+      });
+      let companie = await prisma.companie.findUnique({
+        where: { idcompanie: utilizator.idcompanie },
+      });
+      const subscriptie = await getSubscriptie(companie.tipsubscriptie);
+      let tipTichet = "consult";
+      let dataCreare = new Date().toISOString();
+      let idstatus = 4; // Caz nou
+      let idSuport = await getAdminTicheteMinime(body.specializare);
+      let timpPtRaspuns = new Date();
+      timpPtRaspuns.setHours(timpPtRaspuns.getHours() + 3);
+      let timpP1;
+      switch (body.prioritate) {
+        case "P1":
+          timpP1 = Number(subscriptie.p1.substring(0, 1));
+          timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+
+          break;
+        case "P2":
+          if (subscriptie.tip === "Gold" || subscriptie.tip === "Platinum") {
+            timpP1 = Number(subscriptie.p2.substring(0, 1));
+            timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+          } else {
+            timpP1 = Number(subscriptie.p2.substring(0, 2));
+            timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+          }
+          break;
+        case "P3":
+          if (subscriptie.tip === "Bronze" || subscriptie.tip === "Silver") {
+            timpP1 = Number(subscriptie.p3, substring(0, 1));
+            timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
+          } else {
+            timpP1 = Number(subscriptie.p3.substring(0, 2));
+            timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+          }
+          break;
+        default:
+          switch (subscriptie.tip) {
+            case "Gold":
+              timpP1 = Number(subscriptie.p4.substring(0, 2));
+              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+
+              break;
+            case "Platinum":
+              timpP1 = Number(subscriptie.p4.substring(0, 1));
+              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+
+            default:
+              timpP1 = Number(subscriptie.p4.substring(0, 1));
+              timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
+              break;
+          }
+      }
+      let data = {
+        titlu: body.titlu,
+        tiptichet: tipTichet,
+        prioritate: body.prioritate,
+        datacreare: dataCreare,
+        produs: body.produs,
+        escalat: false,
+        idsuport: idSuport,
+        idutilizator: user.idutilizator,
+        notite: body.notite,
+        idspecializare: body.specializare,
+        idstatus: idstatus,
+        timpPentruRaspuns: timpPtRaspuns,
+        consult: 0,
+      };
+      let istoricTichet = await prisma.tichet.create({ data: data });
+
+      const consult = await prisma.istorictichet.create({
+        data: {
+          idtichet: istoricTichet.idtichet,
+          datacreare: dataCreare,
+          modificare: `Tichet deschis de ${user.email}`,
+        },
+      });
+      await prisma.tichet.update({
+        where: { idtichet: idtichetparinte },
+        data: { consult: istoricTichet.idtichet },
+      });
+      return "Tichetul a fost creat cu succes cu detaliile primite";
+    } else {
+      return "Doar proprietarul cazului poate deschide consult.";
+    }
+  }
+};
 const getTichet = async (user, idtichet) => {
   let tichet = null;
   try {
@@ -520,8 +518,8 @@ const updateTichet = async (idtichet, user, body) => {
   try {
     if (
       user.tiputilizator === "client" &&
-      body.bugdeschis === undefined &&
-      body.consultdeschis === undefined
+      body.bug === undefined &&
+      body.consult === undefined
     ) {
       if (body.prioritate) {
         await insertIstoricTichet(
@@ -558,13 +556,13 @@ const updateTichet = async (idtichet, user, body) => {
         data: body,
       });
     } else if (user.tiputilizator === "admin") {
-      if (body.consultdeschis) {
+      if (body.consult) {
         await insertIstoricTichet(
           idtichet,
           `Tichetului ${idtichet} i-a fost deschis consult de catre ${user.email}.`
         );
       }
-      if (body.bugdeschis) {
+      if (body.bug) {
         await insertIstoricTichet(
           idtichet,
           `Tichetului ${idtichet} i-a fost deschis bug de catre ${user.email}.`
@@ -590,7 +588,7 @@ const updateTichet = async (idtichet, user, body) => {
 };
 
 tichetRouter.post("/", esteUtilizatorClientSauAdmin, async (req, res) => {
-  const { titlu, prioritate, produs, notite, specializare, idtichetparinte } = {
+  const { titlu, prioritate, produs, notite, specializare } = {
     ...req.body,
   };
   const user = req.user;
@@ -602,8 +600,7 @@ tichetRouter.post("/", esteUtilizatorClientSauAdmin, async (req, res) => {
       produs,
       notite,
       specializare,
-      user,
-      idtichetparinte
+      user
     );
     switch (tichet) {
       case "Tichetul a fost creat cu succes cu detaliile primite":
@@ -617,11 +614,6 @@ tichetRouter.post("/", esteUtilizatorClientSauAdmin, async (req, res) => {
       case "Clientul nu a fost validat.":
         res.status(409).send({ message: "Clientul nu a fost validat." });
         break;
-      case "Doar proprietarul cazului poate deschide consult.":
-        res.status(403).send({
-          message: "Doar proprietarul cazului poate deschide consult.",
-        });
-        break;
       default:
         res.status(403).send({
           message: "Tichetul nu a fost creat, lipsesc date pentru completare",
@@ -634,6 +626,31 @@ tichetRouter.post("/", esteUtilizatorClientSauAdmin, async (req, res) => {
   }
 });
 
+tichetRouter.post(
+  "/:idtichetparinte/consult",
+  esteUtilizatorAdmin,
+  async (req, res) => {
+    try {
+      const { idtichetparinte } = { ...req.params };
+      const { user } = { ...req };
+      const { body } = { ...req };
+      const tichet = await insertConsult(Number(idtichetparinte), user, body);
+      if (tichet === "Doar proprietarul cazului poate deschide consult.") {
+        res.status(403).send({
+          message: "Doar proprietarul cazului poate deschide consult.",
+        });
+      } else {
+        res.status(200).send({
+          message: "Consultul a fost creat cu succes cu detaliile primite.",
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      res.status(500).send(error);
+    }
+  }
+);
+
 tichetRouter.get("/", esteUtilizatorAdmin, async (req, res) => {
   try {
     let tichete = await getAllTichete();
@@ -643,27 +660,30 @@ tichetRouter.get("/", esteUtilizatorAdmin, async (req, res) => {
   }
 });
 
-tichetRouter.post("/:idtichet/bug", esteUtilizatorAdmin, async (req, res) => {
-  try {
-    const { idtichet } = { ...req.params };
-    const { user } = { ...req };
-    const { body } = { ...req };
-    console.log(body);
-    const tichet = await insertBug(Number(idtichet), user, body);
-    if (tichet === "Doar proprietarul cazului poate deschide bug.") {
-      res
-        .status(403)
-        .send({ message: "Doar proprietarul cazului poate deschide bug." });
-    } else {
-      res.status(200).send({
-        message: "Bugul a fost creat cu succes cu detaliile primite.",
-      });
+tichetRouter.post(
+  "/:idtichetparinte/bug",
+  esteUtilizatorAdmin,
+  async (req, res) => {
+    try {
+      const { idtichetparinte } = { ...req.params };
+      const { user } = { ...req };
+      const { body } = { ...req };
+      const tichet = await insertBug(Number(idtichetparinte), user, body);
+      if (tichet === "Doar proprietarul cazului poate deschide bug.") {
+        res
+          .status(403)
+          .send({ message: "Doar proprietarul cazului poate deschide bug." });
+      } else {
+        res.status(200).send({
+          message: "Bugul a fost creat cu succes cu detaliile primite.",
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      res.status(500).send(error);
     }
-  } catch (error) {
-    console.log(error);
-    res.status(500).send(error);
   }
-});
+);
 
 tichetRouter.get(
   "/:idtichet",
@@ -754,6 +774,13 @@ const insertMesajTichet = async (idtichet, user, mesaj) => {
           emailutilizator: utilizator.email,
         },
       });
+      await prisma.istorictichet.create({
+        data: {
+          idtichet: idtichet,
+          modificare: `Mesaj trimis de admin: ${user.email}`,
+          datacreare: dataCreare,
+        },
+      });
     } else {
       emitatorMesaj = "client";
       const tichet = await prisma.tichet.findUnique({
@@ -770,6 +797,13 @@ const insertMesajTichet = async (idtichet, user, mesaj) => {
           datacreare: dataCreare,
           emailutilizator: user.email,
           emailsuport: utilizator.email,
+        },
+      });
+      await prisma.istorictichet.create({
+        data: {
+          idtichet: idtichet,
+          modificare: `Mesaj trimis de client: ${user.email}`,
+          datacreare: dataCreare,
         },
       });
     }
@@ -812,6 +846,11 @@ const getMesajeTichet = async (idtichet, user) => {
       } else {
         mesaje = await prisma.mesaje.findMany({
           where: { idtichet: idtichet },
+          AND: {
+            emitatormesaj: {
+              in: ["admin", "client"],
+            },
+          },
         });
       }
     } else {
@@ -839,6 +878,58 @@ tichetRouter.get(
         });
       } else {
         res.status(200).send({ mesaje });
+      }
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  }
+);
+
+const insertMesajIntern = async (idtichet, user, mesaj) => {
+  let mesajTichet = null;
+  let emitatorMesaj = null;
+  let dataCreare = new Date().toISOString();
+  try {
+    if (user.tiputilizator === "admin") {
+      emitatorMesaj = "intern";
+      mesajTichet = await prisma.mesaje.create({
+        data: {
+          continut: mesaj,
+          idtichet: idtichet,
+          emitatormesaj: emitatorMesaj,
+          datacreare: dataCreare,
+          emailsuport: user.email,
+          emailutilizator: user.email,
+        },
+      });
+      await prisma.istorictichet.create({
+        data: {
+          idtichet: idtichet,
+          modificare: `Mesaj intern trimis de ${user.email}`,
+          datacreare: dataCreare,
+        },
+      });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+  return mesajTichet;
+};
+
+tichetRouter.post(
+  "/:idtichet/mesajIntern",
+  esteUtilizatorAdmin,
+  async (req, res) => {
+    try {
+      const { idtichet } = { ...req.params };
+      const { user } = { ...req };
+      const { mesaj } = { ...req.body };
+
+      if (mesaj) {
+        await insertMesajIntern(Number(idtichet), user, mesaj);
+        res.status(200).send({ message: "Mesajul a fost trimis cu succes." });
+      } else {
+        res.status(400).send({ message: "Mesajul nu poate fi gol." });
       }
     } catch (error) {
       res.status(500).send(error);
