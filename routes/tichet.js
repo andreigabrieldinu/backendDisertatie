@@ -63,7 +63,9 @@ const insertTichet = async (
   user
 ) => {
   let tichet = null;
-
+  if (!titlu || !prioritate || !produs || !specializare) {
+    return "Tichetul nu a fost creat, lipsesc date pentru completare";
+  }
   try {
     //daca tichet de validare nu a fost deschis
     if (
@@ -190,7 +192,6 @@ const insertTichet = async (
   } catch (error) {
     console.log(error);
   }
-
   return tichet;
 };
 
@@ -604,7 +605,7 @@ tichetRouter.post("/", esteUtilizatorClientSauAdmin, async (req, res) => {
     );
     switch (tichet) {
       case "Tichetul a fost creat cu succes cu detaliile primite":
-        res.status(200).send({
+        res.status(201).send({
           message: "Tichetul a fost creat cu succes cu detaliile primite",
         });
         break;
@@ -718,7 +719,7 @@ tichetRouter.get(
           message: "Utilizatorul nu are tichete.",
         });
       } else {
-        res.status(200).send({ tichet });
+        res.status(200).send(tichet);
       }
     } catch (error) {
       console.log(error);
@@ -877,7 +878,7 @@ tichetRouter.get(
           message: "Utilizatorul nu are acces la acest tichet.",
         });
       } else {
-        res.status(200).send({ mesaje });
+        res.status(200).send(mesaje);
       }
     } catch (error) {
       res.status(500).send(error);

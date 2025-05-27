@@ -212,6 +212,8 @@ utilizatorRouter.get(
   "/auth/status",
   esteUtilizatorClientSauAdmin,
   (req, res) => {
+    let dataCreare = req.user.datacreare;
+
     if (req.user) {
       let userToSend = {
         idutilizator: req.user.idutilizator,
@@ -223,6 +225,7 @@ utilizatorRouter.get(
         tichetValidareDeschis: req.user.tichetValidareDeschis,
         tipUtilizator: req.user.tiputilizator,
         specializare: req.user.specializare,
+        datacreare: dataCreare.substring(0, 10),
       };
       res.status(200).send(userToSend);
     } else {
