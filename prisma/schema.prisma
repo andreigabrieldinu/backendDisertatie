@@ -34,7 +34,7 @@ model istorictichet {
   idistoric  Int      @id @default(autoincrement())
   idtichet   Int
   datacreare DateTime @db.Timestamp(6)
-  modificare String?  @db.VarChar(200)
+  modificare String?  @db.VarChar(400)
   tichet     tichet   @relation(fields: [idtichet], references: [idtichet], onDelete: NoAction, onUpdate: NoAction)
 }
 
@@ -94,8 +94,8 @@ model tichet {
   idstatus                                   Int
   idspecializare                             Int             @default(0)
   timpPentruRaspuns                          DateTime?       @db.Timestamp(6)
-  consult                                    Int             @default(0)
   bug                                        Int             @default(0)
+  consult                                    Int             @default(0)
   istorictichet                              istorictichet[]
   mesaje                                     mesaje[]
   utilizator_tichet_idsuportToutilizator     utilizator      @relation("tichet_idsuportToutilizator", fields: [idsuport], references: [idutilizator], onDelete: NoAction, onUpdate: NoAction)

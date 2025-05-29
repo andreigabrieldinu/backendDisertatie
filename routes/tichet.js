@@ -138,7 +138,7 @@ const insertTichet = async (
             break;
           case "P3":
             if (subscriptie.tip === "Bronze" || subscriptie.tip === "Silver") {
-              timpP1 = Number(subscriptie.p3, substring(0, 1));
+              timpP1 = Number(subscriptie.p3.substring(0, 1));
               timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
             } else {
               timpP1 = Number(subscriptie.p3.substring(0, 2));
@@ -470,6 +470,9 @@ const getTicheteleMele = async (user) => {
       });
       let ticheteNoi = [];
       for (let tichet of tichete) {
+        let suport = await prisma.utilizator.findUnique({
+          where: { idutilizator: tichet.idsuport },
+        });
         let numeStatus = await prisma.statustichete.findUnique({
           where: { idstatus: tichet.idstatus },
         });
@@ -488,6 +491,8 @@ const getTicheteleMele = async (user) => {
           notite: tichet.notite,
           status: numeStatus.nume,
           specializare: numeSpecializare.nume,
+          numesuport: `${suport.nume} ${suport.prenume}`,
+          timpPentruRaspuns: tichet.timpPentruRaspuns,
         };
         ticheteNoi.push(tichetDeTrimis);
       }
