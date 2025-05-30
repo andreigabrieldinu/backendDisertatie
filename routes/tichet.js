@@ -54,6 +54,20 @@ const getAdminTicheteMinime = async (specializare) => {
   return minimum.idsuport;
 };
 
+const insertIstoricTichet = async (idtichet, modificare) => {
+  try {
+    await prisma.istorictichet.create({
+      data: {
+        idtichet: idtichet,
+        modificare: modificare,
+        datacreare: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 const insertTichet = async (
   titlu,
   prioritate,
@@ -195,6 +209,181 @@ const insertTichet = async (
   return tichet;
 };
 
+tichetRouter.post("/", esteUtilizatorClientSauAdmin, async (req, res) => {
+  const { titlu, prioritate, produs, notite, specializare } = {
+    ...req.body,
+  };
+  const user = req.user;
+
+  try {
+    let tichet = await insertTichet(
+      titlu,
+      prioritate,
+      produs,
+      notite,
+      specializare,
+      user
+    );
+    switch (tichet) {
+      case "Tichetul a fost creat cu succes cu detaliile primite":
+        res.status(201).send({
+          message: "Tichetul a fost creat cu succes cu detaliile primite",
+        });
+        break;
+      case "Compania este setata ca inactiva.":
+        res.status(409).send({ message: "Compania este setata ca inactiva." });
+        break;
+      case "Clientul nu a fost validat.":
+        res.status(409).send({ message: "Clientul nu a fost validat." });
+        break;
+      default:
+        res.status(403).send({
+          message: "Tichetul nu a fost creat, lipsesc date pentru completare",
+        });
+        break;
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error);
+  }
+});
+
+const insertConsult = async (idtichetparinte, user, body) => {
+  if (user.tiputilizator === "admin" && idtichetparinte) {
+    let tichetParinte = await prisma.tichet.findUnique({
+      where: { idtichet: idtichetparinte },
+    });
+    if (tichetParinte.idsuport === user.idutilizator) {
+      let utilizator = await prisma.utilizator.findUnique({
+        where: {
+          idutilizator: tichetParinte.idutilizator,
+        },
+      });
+      let companie = await prisma.companie.findUnique({
+        where: { idcompanie: utilizator.idcompanie },
+      });
+      const subscriptie = await getSubscriptie(companie.tipsubscriptie);
+      let tipTichet = "consult";
+      let dataCreare = new Date().toISOString();
+      let idstatus = 4; // Caz nou
+      let idSuport = await getAdminTicheteMinime(body.specializare);
+      let timpPtRaspuns = new Date();
+      timpPtRaspuns.setHours(timpPtRaspuns.getHours() + 3);
+      let timpP1;
+      switch (body.prioritate) {
+        case "P1":
+          timpP1 = Number(subscriptie.p1.substring(0, 1));
+          timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+
+          break;
+        case "P2":
+          if (subscriptie.tip === "Gold" || subscriptie.tip === "Platinum") {
+            timpP1 = Number(subscriptie.p2.substring(0, 1));
+            timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+          } else {
+            timpP1 = Number(subscriptie.p2.substring(0, 2));
+            timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+          }
+          break;
+        case "P3":
+          if (subscriptie.tip === "Bronze" || subscriptie.tip === "Silver") {
+            timpP1 = Number(subscriptie.p3, substring(0, 1));
+            timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
+          } else {
+            timpP1 = Number(subscriptie.p3.substring(0, 2));
+            timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+          }
+          break;
+        default:
+          switch (subscriptie.tip) {
+            case "Gold":
+              timpP1 = Number(subscriptie.p4.substring(0, 2));
+              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+
+              break;
+            case "Platinum":
+              timpP1 = Number(subscriptie.p4.substring(0, 1));
+              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
+
+            default:
+              timpP1 = Number(subscriptie.p4.substring(0, 1));
+              timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
+              break;
+          }
+      }
+      let data = {
+        titlu: body.titlu,
+        tiptichet: tipTichet,
+        prioritate: body.prioritate,
+        datacreare: dataCreare,
+        produs: body.produs,
+        escalat: false,
+        idsuport: idSuport,
+        idutilizator: user.idutilizator,
+        notite: body.notite,
+        idspecializare: body.specializare,
+        idstatus: idstatus,
+        timpPentruRaspuns: timpPtRaspuns,
+        consult: 0,
+      };
+      let istoricTichet = await prisma.tichet.create({ data: data });
+
+      const consult = await prisma.istorictichet.create({
+        data: {
+          idtichet: istoricTichet.idtichet,
+          datacreare: dataCreare,
+          modificare: `Tichet deschis de ${user.email}`,
+        },
+      });
+      await prisma.tichet.update({
+        where: { idtichet: idtichetparinte },
+        data: { consult: istoricTichet.idtichet },
+      });
+      return "Tichetul a fost creat cu succes cu detaliile primite";
+    } else {
+      return "Doar proprietarul cazului poate deschide consult.";
+    }
+  }
+};
+
+tichetRouter.post(
+  "/:idtichetparinte/consult",
+  esteUtilizatorAdmin,
+  async (req, res) => {
+    try {
+      const { idtichetparinte } = { ...req.params };
+      const { user } = { ...req };
+      const { body } = { ...req };
+      const tichet = await insertConsult(Number(idtichetparinte), user, body);
+      if (tichet === "Doar proprietarul cazului poate deschide consult.") {
+        res.status(403).send({
+          message: "Doar proprietarul cazului poate deschide consult.",
+        });
+      } else {
+        res.status(200).send({
+          message: "Consultul a fost creat cu succes cu detaliile primite.",
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      res.status(500).send(error);
+    }
+  }
+);
+
+const getAllTichete = async () => {
+  return await prisma.tichet.findMany();
+};
+
+tichetRouter.get("/", esteUtilizatorAdmin, async (req, res) => {
+  try {
+    let tichete = await getAllTichete();
+    res.status(200).send(tichete);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
 const insertBug = async (idtichetparinte, user, body) => {
   try {
     if (user.tiputilizator === "admin" && idtichetparinte) {
@@ -300,107 +489,31 @@ const insertBug = async (idtichetparinte, user, body) => {
   }
 };
 
-const getAllTichete = async () => {
-  return await prisma.tichet.findMany();
-};
-
-const insertConsult = async (idtichetparinte, user, body) => {
-  if (user.tiputilizator === "admin" && idtichetparinte) {
-    let tichetParinte = await prisma.tichet.findUnique({
-      where: { idtichet: idtichetparinte },
-    });
-    if (tichetParinte.idsuport === user.idutilizator) {
-      let utilizator = await prisma.utilizator.findUnique({
-        where: {
-          idutilizator: tichetParinte.idutilizator,
-        },
-      });
-      let companie = await prisma.companie.findUnique({
-        where: { idcompanie: utilizator.idcompanie },
-      });
-      const subscriptie = await getSubscriptie(companie.tipsubscriptie);
-      let tipTichet = "consult";
-      let dataCreare = new Date().toISOString();
-      let idstatus = 4; // Caz nou
-      let idSuport = await getAdminTicheteMinime(body.specializare);
-      let timpPtRaspuns = new Date();
-      timpPtRaspuns.setHours(timpPtRaspuns.getHours() + 3);
-      let timpP1;
-      switch (body.prioritate) {
-        case "P1":
-          timpP1 = Number(subscriptie.p1.substring(0, 1));
-          timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
-
-          break;
-        case "P2":
-          if (subscriptie.tip === "Gold" || subscriptie.tip === "Platinum") {
-            timpP1 = Number(subscriptie.p2.substring(0, 1));
-            timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
-          } else {
-            timpP1 = Number(subscriptie.p2.substring(0, 2));
-            timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
-          }
-          break;
-        case "P3":
-          if (subscriptie.tip === "Bronze" || subscriptie.tip === "Silver") {
-            timpP1 = Number(subscriptie.p3, substring(0, 1));
-            timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
-          } else {
-            timpP1 = Number(subscriptie.p3.substring(0, 2));
-            timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
-          }
-          break;
-        default:
-          switch (subscriptie.tip) {
-            case "Gold":
-              timpP1 = Number(subscriptie.p4.substring(0, 2));
-              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
-
-              break;
-            case "Platinum":
-              timpP1 = Number(subscriptie.p4.substring(0, 1));
-              timpPtRaspuns.setHours(timpPtRaspuns.getHours() + timpP1);
-
-            default:
-              timpP1 = Number(subscriptie.p4.substring(0, 1));
-              timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
-              break;
-          }
+tichetRouter.post(
+  "/:idtichetparinte/bug",
+  esteUtilizatorAdmin,
+  async (req, res) => {
+    try {
+      const { idtichetparinte } = { ...req.params };
+      const { user } = { ...req };
+      const { body } = { ...req };
+      const tichet = await insertBug(Number(idtichetparinte), user, body);
+      if (tichet === "Doar proprietarul cazului poate deschide bug.") {
+        res
+          .status(403)
+          .send({ message: "Doar proprietarul cazului poate deschide bug." });
+      } else {
+        res.status(200).send({
+          message: "Bugul a fost creat cu succes cu detaliile primite.",
+        });
       }
-      let data = {
-        titlu: body.titlu,
-        tiptichet: tipTichet,
-        prioritate: body.prioritate,
-        datacreare: dataCreare,
-        produs: body.produs,
-        escalat: false,
-        idsuport: idSuport,
-        idutilizator: user.idutilizator,
-        notite: body.notite,
-        idspecializare: body.specializare,
-        idstatus: idstatus,
-        timpPentruRaspuns: timpPtRaspuns,
-        consult: 0,
-      };
-      let istoricTichet = await prisma.tichet.create({ data: data });
-
-      const consult = await prisma.istorictichet.create({
-        data: {
-          idtichet: istoricTichet.idtichet,
-          datacreare: dataCreare,
-          modificare: `Tichet deschis de ${user.email}`,
-        },
-      });
-      await prisma.tichet.update({
-        where: { idtichet: idtichetparinte },
-        data: { consult: istoricTichet.idtichet },
-      });
-      return "Tichetul a fost creat cu succes cu detaliile primite";
-    } else {
-      return "Doar proprietarul cazului poate deschide consult.";
+    } catch (error) {
+      console.log(error);
+      res.status(500).send(error);
     }
   }
-};
+);
+
 const getTichet = async (user, idtichet) => {
   let tichet = null;
   try {
@@ -441,6 +554,27 @@ const getTichet = async (user, idtichet) => {
     console.log(error);
   }
 };
+
+tichetRouter.get(
+  "/:idtichet",
+  esteUtilizatorClientSauAdmin,
+  async (req, res) => {
+    const { idtichet } = { ...req.params };
+    const { user } = { ...req };
+    try {
+      const tichet = await getTichet(user, idtichet);
+      if (tichet === "Utilizatorul poate vedea doar propriile tichete.") {
+        res.status(403).send({
+          message: "Utilizatorul poate vedea doar propriile tichete.",
+        });
+      } else {
+        res.status(200).send({ tichet });
+      }
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  }
+);
 
 const getTicheteleMele = async (user) => {
   let tichete = null;
@@ -505,19 +639,26 @@ const getTicheteleMele = async (user) => {
   }
 };
 
-const insertIstoricTichet = async (idtichet, modificare) => {
-  try {
-    await prisma.istorictichet.create({
-      data: {
-        idtichet: idtichet,
-        modificare: modificare,
-        datacreare: new Date().toISOString(),
-      },
-    });
-  } catch (error) {
-    console.log(error);
+tichetRouter.get(
+  "/ticheteleMele/active",
+  esteUtilizatorClientSauAdmin,
+  async (req, res) => {
+    const { user } = { ...req };
+    try {
+      const tichet = await getTicheteleMele(user);
+      if (tichet === "Utilizatorul nu are tichete.") {
+        res.status(404).send({
+          message: "Utilizatorul nu are tichete.",
+        });
+      } else {
+        res.status(200).send(tichet);
+      }
+    } catch (error) {
+      console.log(error);
+      res.status(500).send(error);
+    }
   }
-};
+);
 
 const updateTichet = async (idtichet, user, body) => {
   let tichet = null;
@@ -592,146 +733,6 @@ const updateTichet = async (idtichet, user, body) => {
     console.log(error);
   }
 };
-
-tichetRouter.post("/", esteUtilizatorClientSauAdmin, async (req, res) => {
-  const { titlu, prioritate, produs, notite, specializare } = {
-    ...req.body,
-  };
-  const user = req.user;
-
-  try {
-    let tichet = await insertTichet(
-      titlu,
-      prioritate,
-      produs,
-      notite,
-      specializare,
-      user
-    );
-    switch (tichet) {
-      case "Tichetul a fost creat cu succes cu detaliile primite":
-        res.status(201).send({
-          message: "Tichetul a fost creat cu succes cu detaliile primite",
-        });
-        break;
-      case "Compania este setata ca inactiva.":
-        res.status(409).send({ message: "Compania este setata ca inactiva." });
-        break;
-      case "Clientul nu a fost validat.":
-        res.status(409).send({ message: "Clientul nu a fost validat." });
-        break;
-      default:
-        res.status(403).send({
-          message: "Tichetul nu a fost creat, lipsesc date pentru completare",
-        });
-        break;
-    }
-  } catch (error) {
-    console.log(error);
-    res.status(500).send(error);
-  }
-});
-
-tichetRouter.post(
-  "/:idtichetparinte/consult",
-  esteUtilizatorAdmin,
-  async (req, res) => {
-    try {
-      const { idtichetparinte } = { ...req.params };
-      const { user } = { ...req };
-      const { body } = { ...req };
-      const tichet = await insertConsult(Number(idtichetparinte), user, body);
-      if (tichet === "Doar proprietarul cazului poate deschide consult.") {
-        res.status(403).send({
-          message: "Doar proprietarul cazului poate deschide consult.",
-        });
-      } else {
-        res.status(200).send({
-          message: "Consultul a fost creat cu succes cu detaliile primite.",
-        });
-      }
-    } catch (error) {
-      console.log(error);
-      res.status(500).send(error);
-    }
-  }
-);
-
-tichetRouter.get("/", esteUtilizatorAdmin, async (req, res) => {
-  try {
-    let tichete = await getAllTichete();
-    res.status(200).send(tichete);
-  } catch (error) {
-    res.status(500).send(error);
-  }
-});
-
-tichetRouter.post(
-  "/:idtichetparinte/bug",
-  esteUtilizatorAdmin,
-  async (req, res) => {
-    try {
-      const { idtichetparinte } = { ...req.params };
-      const { user } = { ...req };
-      const { body } = { ...req };
-      const tichet = await insertBug(Number(idtichetparinte), user, body);
-      if (tichet === "Doar proprietarul cazului poate deschide bug.") {
-        res
-          .status(403)
-          .send({ message: "Doar proprietarul cazului poate deschide bug." });
-      } else {
-        res.status(200).send({
-          message: "Bugul a fost creat cu succes cu detaliile primite.",
-        });
-      }
-    } catch (error) {
-      console.log(error);
-      res.status(500).send(error);
-    }
-  }
-);
-
-tichetRouter.get(
-  "/:idtichet",
-  esteUtilizatorClientSauAdmin,
-  async (req, res) => {
-    const { idtichet } = { ...req.params };
-    const { user } = { ...req };
-    try {
-      const tichet = await getTichet(user, idtichet);
-      if (tichet === "Utilizatorul poate vedea doar propriile tichete.") {
-        res.status(403).send({
-          message: "Utilizatorul poate vedea doar propriile tichete.",
-        });
-      } else {
-        res.status(200).send({ tichet });
-      }
-    } catch (error) {
-      res.status(500).send(error);
-    }
-  }
-);
-
-tichetRouter.get(
-  "/ticheteleMele/active",
-  esteUtilizatorClientSauAdmin,
-  async (req, res) => {
-    const { user } = { ...req };
-    try {
-      const tichet = await getTicheteleMele(user);
-      if (tichet === "Utilizatorul nu are tichete.") {
-        res.status(404).send({
-          message: "Utilizatorul nu are tichete.",
-        });
-      } else {
-        res.status(200).send(tichet);
-      }
-    } catch (error) {
-      console.log(error);
-      res.status(500).send(error);
-    }
-  }
-);
 
 tichetRouter.patch(
   "/:idtichet",
@@ -851,10 +852,12 @@ const getMesajeTichet = async (idtichet, user) => {
         return "Utilizatorul nu are acces la acest tichet.";
       } else {
         mesaje = await prisma.mesaje.findMany({
-          where: { idtichet: idtichet },
-          AND: {
-            emitatormesaj: {
-              in: ["admin", "client"],
+          where: {
+            idtichet: idtichet,
+            AND: {
+              emitatormesaj: {
+                in: ["admin", "client"],
+              },
             },
           },
         });
