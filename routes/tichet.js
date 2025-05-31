@@ -5,7 +5,7 @@ import {
   esteUtilizatorClientSauAdmin,
 } from "./utilizator.js";
 import { getSubscriptie } from "./subscriptie.js";
-import e from "express";
+import { getIstoricTichet } from "./istoricTichet.js";
 
 const tichetRouter = express.Router();
 
@@ -115,6 +115,24 @@ const insertTichet = async (
           tichetValidareDeschis: true,
         },
       });
+
+      await prisma.istorictichet.create({
+        data: {
+          idtichet: istoicTichet.idtichet,
+          datacreare: dataCreare,
+          modificare: `Tichet deschis de ${user.email}`,
+        },
+      });
+      const suport = await prisma.utilizator.findUnique({
+        where: { idutilizator: idSuport },
+      });
+      await prisma.istorictichet.create({
+        data: {
+          idtichet: istoicTichet.idtichet,
+          datacreare: dataCreare,
+          modificare: `Tichet asignat lui ${suport.email}`,
+        },
+      });
       return "Tichetul a fost creat cu succes cu detaliile primite";
     } else if (
       user.idcompanie &&
@@ -196,6 +214,16 @@ const insertTichet = async (
             idtichet: istoicTichet.idtichet,
             datacreare: dataCreare,
             modificare: `Tichet deschis de ${user.email}`,
+          },
+        });
+        const suport = await prisma.utilizator.findUnique({
+          where: { idutilizator: idSuport },
+        });
+        await prisma.istorictichet.create({
+          data: {
+            idtichet: istoicTichet.idtichet,
+            datacreare: dataCreare,
+            modificare: `Tichet asignat lui ${suport.email}`,
           },
         });
         return "Tichetul a fost creat cu succes cu detaliile primite";
@@ -721,6 +749,15 @@ const updateTichet = async (idtichet, user, body) => {
           `Tichetul ${idtichet} a fost reprioritizat la ${body.prioritate} de ${user.email}.`
         );
       }
+      if (body.idsuport) {
+        let suport = await prisma.utilizator.findUnique({
+          where: { idutilizator: body.idsuport },
+        });
+        await insertIstoricTichet(
+          idtichet,
+          `Tichetul ${idtichet} a fost asignat pe ${suport.email} de ${user.email}.`
+        );
+      }
       tichet = await prisma.tichet.update({
         where: { idtichet: idtichet },
         data: body,
@@ -771,6 +808,13 @@ const insertMesajTichet = async (idtichet, user, mesaj) => {
       const utilizator = await prisma.utilizator.findUnique({
         where: { idutilizator: tichet.idutilizator },
       });
+      await prisma.istorictichet.create({
+        data: {
+          idtichet: idtichet,
+          modificare: `Mesaj trimis de admin: ${user.email}`,
+          datacreare: dataCreare,
+        },
+      });
       mesajTichet = await prisma.mesaje.create({
         data: {
           continut: mesaj,
@@ -781,13 +825,6 @@ const insertMesajTichet = async (idtichet, user, mesaj) => {
           emailutilizator: utilizator.email,
         },
       });
-      await prisma.istorictichet.create({
-        data: {
-          idtichet: idtichet,
-          modificare: `Mesaj trimis de admin: ${user.email}`,
-          datacreare: dataCreare,
-        },
-      });
     } else {
       emitatorMesaj = "client";
       const tichet = await prisma.tichet.findUnique({
@@ -795,6 +832,13 @@ const insertMesajTichet = async (idtichet, user, mesaj) => {
       });
       const utilizator = await prisma.utilizator.findUnique({
         where: { idutilizator: tichet.idsuport },
+      });
+      await prisma.istorictichet.create({
+        data: {
+          idtichet: idtichet,
+          modificare: `Mesaj trimis de client: ${user.email}`,
+          datacreare: dataCreare,
+        },
       });
       mesajTichet = await prisma.mesaje.create({
         data: {
@@ -806,12 +850,14 @@ const insertMesajTichet = async (idtichet, user, mesaj) => {
           emailsuport: utilizator.email,
         },
       });
-      await prisma.istorictichet.create({
-        data: {
-          idtichet: idtichet,
-          modificare: `Mesaj trimis de client: ${user.email}`,
-          datacreare: dataCreare,
-        },
+      // Actualizare timp pentru raspuns la 24 de ore
+      // pentru client
+      let timpPentruRaspuns = new Date();
+      timpPentruRaspuns.setHours(timpPentruRaspuns.getHours() + 24);
+
+      await prisma.tichet.update({
+        where: { idtichet: idtichet },
+        data: { timpPentruRaspuns: timpPentruRaspuns, idstatus: 2 },
       });
     }
   } catch (error) {
@@ -842,7 +888,7 @@ tichetRouter.post(
 );
 
 const getMesajeTichet = async (idtichet, user) => {
-  let mesaje = null;
+  let mesajeFinale = null;
   try {
     if (user.tiputilizator === "client") {
       const tichet = await prisma.tichet.findUnique({
@@ -851,7 +897,7 @@ const getMesajeTichet = async (idtichet, user) => {
       if (tichet.idutilizator !== user.idutilizator) {
         return "Utilizatorul nu are acces la acest tichet.";
       } else {
-        mesaje = await prisma.mesaje.findMany({
+        let mesaje = await prisma.mesaje.findMany({
           where: {
             idtichet: idtichet,
             AND: {
@@ -861,13 +907,45 @@ const getMesajeTichet = async (idtichet, user) => {
             },
           },
         });
+        let istoricTichet = await getIstoricTichet(idtichet, user);
+        mesajeFinale = mesaje.concat(istoricTichet);
+        for (let i = 0; i < mesajeFinale.length - 1; i++) {
+          for (let j = i + 1; j < mesajeFinale.length; j++) {
+            if (mesajeFinale[i].datacreare > mesajeFinale[j].datacreare) {
+              let temp = mesajeFinale[i];
+              mesajeFinale[i] = mesajeFinale[j];
+              mesajeFinale[j] = temp;
+            }
+            if (mesajeFinale[i].datacreare === mesajeFinale[j].datacreare) {
+              let temp = mesajeFinale[j];
+              mesajeFinale[j] = mesajeFinale[i];
+              mesajeFinale[i] = temp;
+            }
+          }
+        }
       }
     } else {
-      mesaje = await prisma.mesaje.findMany({
+      let mesaje = await prisma.mesaje.findMany({
         where: { idtichet: idtichet },
       });
+      let istoricTichet = await getIstoricTichet(idtichet, user);
+      mesajeFinale = mesaje.concat(istoricTichet);
+      for (let i = 0; i < mesajeFinale.length - 1; i++) {
+        for (let j = i + 1; j < mesajeFinale.length; j++) {
+          if (mesajeFinale[i].datacreare > mesajeFinale[j].datacreare) {
+            let temp = mesajeFinale[i];
+            mesajeFinale[i] = mesajeFinale[j];
+            mesajeFinale[j] = temp;
+          }
+          if (mesajeFinale[i].datacreare === mesajeFinale[j].datacreare) {
+            let temp = mesajeFinale[j];
+            mesajeFinale[j] = mesajeFinale[i];
+            mesajeFinale[i] = temp;
+          }
+        }
+      }
     }
-    return mesaje;
+    return mesajeFinale;
   } catch (error) {
     console.log(error);
   }

@@ -22,7 +22,13 @@ const getIstoricTichet = async (idtichet, user) => {
         let istoric = await prisma.istorictichet.findMany({
           where: { idtichet: idtichet },
         });
-        return istoric;
+        let istoricFinal = [];
+        for (let istoricul of istoric) {
+          if (!istoricul.modificare.includes("intern")) {
+            istoricFinal.push(istoricul);
+          }
+        }
+        return istoricFinal;
       } else {
         return "Utilizatorul poate vedea doar istoricul tichetelor sale.";
       }
@@ -57,4 +63,4 @@ istoricTichetRouter.get(
   }
 );
 
-export { istoricTichetRouter };
+export { istoricTichetRouter, getIstoricTichet };
