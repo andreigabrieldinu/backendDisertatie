@@ -643,6 +643,7 @@ const getTicheteleMele = async (user) => {
             idspecializare: tichet.idspecializare,
           },
         });
+
         let tichetDeTrimis = {
           idtichet: tichet.idtichet,
           titlu: tichet.titlu,
@@ -690,85 +691,108 @@ tichetRouter.get(
 
 const updateTichet = async (idtichet, user, body) => {
   let tichet = null;
-  try {
-    if (
-      user.tiputilizator === "client" &&
-      body.bug === undefined &&
-      body.consult === undefined
-    ) {
-      if (body.prioritate) {
-        await insertIstoricTichet(
-          idtichet,
-          `Tichetul ${idtichet} a fost reprioritizat la ${body.prioritate} de ${user.email}.`
-        );
-      }
-      if (body.escalat) {
-        await insertIstoricTichet(
-          idtichet,
-          `Tichetul ${idtichet} a fost escalat de catre ${user.email}.`
-        );
-      }
-      if (body.idsuport) {
-        let suport = await prisma.utilizator.findUnique({
-          where: { idutilizator: body.idsuport },
+  let tichetValidat = await prisma.tichet.findUnique({
+    where: { idtichet: idtichet },
+  });
+  if (
+    tichetValidat.idstatus !== 12 &&
+    tichetValidat.idstatus !== 11 &&
+    tichetValidat.idstatus !== 10 &&
+    tichetValidat.idstatus !== 9 &&
+    tichetValidat.idstatus !== 8 &&
+    tichetValidat.idstatus !== 7
+  ) {
+    try {
+      if (
+        user.tiputilizator === "client" &&
+        body.bug === undefined &&
+        body.consult === undefined
+      ) {
+        if (body.prioritate && body.prioritate !== tichetValidat.prioritate) {
+          await insertIstoricTichet(
+            idtichet,
+            `Tichetul ${idtichet} a fost reprioritizat la ${body.prioritate} de ${user.email}.`
+          );
+        }
+        if (
+          tichetValidat.escalat !== body.escalat &&
+          body.escalat !== undefined
+        ) {
+          await insertIstoricTichet(
+            idtichet,
+            `Tichetul ${idtichet} a fost ${
+              body.escalat ? "escalat" : "deescalat"
+            } de catre ${user.email}.`
+          );
+        }
+
+        if (body.idstatus) {
+          let status = await prisma.statustichete.findFirst({
+            where: { nume: { contains: body.idstatus, mode: "insensitive" } },
+          });
+
+          body.idstatus = status.idstatus;
+          await insertIstoricTichet(
+            idtichet,
+            `Statusul tichetului ${idtichet} a fost modificat in ${status.nume} de catre ${user.email}.`
+          );
+        }
+        tichet = await prisma.tichet.update({
+          where: { idtichet: idtichet },
+          data: body,
         });
-        await insertIstoricTichet(
-          idtichet,
-          `Tichetul ${idtichet} a fost asignat pe ${suport.email}.`
-        );
-      }
-      if (body.idstatus) {
-        let status = await prisma.statustichete.findUnique({
-          where: { idstatus: body.idstatus },
+      } else if (user.tiputilizator === "admin") {
+        if (body.consult) {
+          await insertIstoricTichet(
+            idtichet,
+            `Tichetului ${idtichet} i-a fost deschis consult de catre ${user.email}.`
+          );
+        }
+        if (body.bug) {
+          await insertIstoricTichet(
+            idtichet,
+            `Tichetului ${idtichet} i-a fost deschis bug de catre ${user.email}.`
+          );
+        }
+        if (body.prioritate) {
+          await insertIstoricTichet(
+            idtichet,
+            `Tichetul ${idtichet} a fost reprioritizat la ${body.prioritate} de ${user.email}.`
+          );
+        }
+        if (body.idsuport) {
+          let suport = await prisma.utilizator.findUnique({
+            where: { idutilizator: body.idsuport },
+          });
+          await insertIstoricTichet(
+            idtichet,
+            `Tichetul ${idtichet} a fost asignat pe ${suport.email} de ${user.email}.`
+          );
+        }
+        if (body.idstatus) {
+          let status = await prisma.statustichete.findUnique({
+            where: { idstatus: body.idstatus },
+          });
+          await insertIstoricTichet(
+            idtichet,
+            `Statusul tichetului ${idtichet} a fost modificat in ${status.nume} de catre ${user.email}.`
+          );
+        }
+        tichet = await prisma.tichet.update({
+          where: { idtichet: idtichet },
+          data: body,
         });
-        await insertIstoricTichet(
-          idtichet,
-          `Statusul tichetului ${idtichet} a fost modificat in ${status.nume} de catre ${user.email}.`
-        );
+      } else {
+        return "Aceasta operatiune nu este permisa pentru clienti.";
       }
-      tichet = await prisma.tichet.update({
-        where: { idtichet: idtichet },
-        data: body,
-      });
-    } else if (user.tiputilizator === "admin") {
-      if (body.consult) {
-        await insertIstoricTichet(
-          idtichet,
-          `Tichetului ${idtichet} i-a fost deschis consult de catre ${user.email}.`
-        );
-      }
-      if (body.bug) {
-        await insertIstoricTichet(
-          idtichet,
-          `Tichetului ${idtichet} i-a fost deschis bug de catre ${user.email}.`
-        );
-      }
-      if (body.prioritate) {
-        await insertIstoricTichet(
-          idtichet,
-          `Tichetul ${idtichet} a fost reprioritizat la ${body.prioritate} de ${user.email}.`
-        );
-      }
-      if (body.idsuport) {
-        let suport = await prisma.utilizator.findUnique({
-          where: { idutilizator: body.idsuport },
-        });
-        await insertIstoricTichet(
-          idtichet,
-          `Tichetul ${idtichet} a fost asignat pe ${suport.email} de ${user.email}.`
-        );
-      }
-      tichet = await prisma.tichet.update({
-        where: { idtichet: idtichet },
-        data: body,
-      });
-    } else {
-      return "Aceasta operatiune nu este permisa pentru clienti.";
+      return tichet;
+    } catch (error) {
+      console.log(error);
     }
-    return tichet;
-  } catch (error) {
-    console.log(error);
+  } else {
+    return "Tichetul nu poate fi actualizat deoarece este deja inchis.";
   }
+  return null;
 };
 
 tichetRouter.patch(
@@ -779,12 +803,22 @@ tichetRouter.patch(
       const { idtichet } = { ...req.params };
       const { user } = { ...req };
       const { body } = { ...req };
+
       const tichet = await updateTichet(Number(idtichet), user, body);
-      if (tichet) {
+
+      if (tichet?.idsuport) {
         res
           .status(200)
           .send({ message: "Tichetul a fost actualizat cu succes." });
-      } else {
+      } else if (
+        tichet === "Tichetul nu poate fi actualizat deoarece este deja inchis."
+      ) {
+        res.status(403).send({
+          message: "Tichetul nu poate fi actualizat deoarece este deja inchis.",
+        });
+      } else if (
+        tichet === "Aceasta operatiune nu este permisa pentru clienti."
+      ) {
         res.status(403).send({
           message: "Aceasta operatiune nu este permisa pentru clienti.",
         });
@@ -799,71 +833,81 @@ const insertMesajTichet = async (idtichet, user, mesaj) => {
   let mesajTichet = null;
   let emitatorMesaj = null;
   let dataCreare = new Date().toISOString();
-  try {
-    if (user.tiputilizator === "admin") {
-      emitatorMesaj = "admin";
-      const tichet = await prisma.tichet.findUnique({
-        where: { idtichet: idtichet },
-      });
-      const utilizator = await prisma.utilizator.findUnique({
-        where: { idutilizator: tichet.idutilizator },
-      });
-      await prisma.istorictichet.create({
-        data: {
-          idtichet: idtichet,
-          modificare: `Mesaj trimis de admin: ${user.email}`,
-          datacreare: dataCreare,
-        },
-      });
-      mesajTichet = await prisma.mesaje.create({
-        data: {
-          continut: mesaj,
-          idtichet: idtichet,
-          emitatormesaj: emitatorMesaj,
-          datacreare: dataCreare,
-          emailsuport: user.email,
-          emailutilizator: utilizator.email,
-        },
-      });
-    } else {
-      emitatorMesaj = "client";
-      const tichet = await prisma.tichet.findUnique({
-        where: { idtichet: idtichet },
-      });
-      const utilizator = await prisma.utilizator.findUnique({
-        where: { idutilizator: tichet.idsuport },
-      });
-      await prisma.istorictichet.create({
-        data: {
-          idtichet: idtichet,
-          modificare: `Mesaj trimis de client: ${user.email}`,
-          datacreare: dataCreare,
-        },
-      });
-      mesajTichet = await prisma.mesaje.create({
-        data: {
-          continut: mesaj,
-          idtichet: idtichet,
-          emitatormesaj: emitatorMesaj,
-          datacreare: dataCreare,
-          emailutilizator: user.email,
-          emailsuport: utilizator.email,
-        },
-      });
-      // Actualizare timp pentru raspuns la 24 de ore
-      // pentru client
-      let timpPentruRaspuns = new Date();
-      timpPentruRaspuns.setHours(timpPentruRaspuns.getHours() + 24);
+  let tichetValidat = await prisma.tichet.findUnique({
+    where: { idtichet: idtichet },
+  });
+  if (
+    tichetValidat.idstatus !== 12 &&
+    tichetValidat.idstatus !== 11 &&
+    tichetValidat.idstatus !== 10 &&
+    tichetValidat.idstatus !== 9 &&
+    tichetValidat.idstatus !== 8 &&
+    tichetValidat.idstatus !== 7
+  ) {
+    try {
+      if (user.tiputilizator === "admin") {
+        emitatorMesaj = "admin";
 
-      await prisma.tichet.update({
-        where: { idtichet: idtichet },
-        data: { timpPentruRaspuns: timpPentruRaspuns, idstatus: 2 },
-      });
+        const utilizator = await prisma.utilizator.findUnique({
+          where: { idutilizator: tichet.idutilizator },
+        });
+        await prisma.istorictichet.create({
+          data: {
+            idtichet: idtichet,
+            modificare: `Mesaj trimis de admin: ${user.email}`,
+            datacreare: dataCreare,
+          },
+        });
+        mesajTichet = await prisma.mesaje.create({
+          data: {
+            continut: mesaj,
+            idtichet: idtichet,
+            emitatormesaj: emitatorMesaj,
+            datacreare: dataCreare,
+            emailsuport: user.email,
+            emailutilizator: utilizator.email,
+          },
+        });
+      } else {
+        emitatorMesaj = "client";
+        const tichet = await prisma.tichet.findUnique({
+          where: { idtichet: idtichet },
+        });
+        const utilizator = await prisma.utilizator.findUnique({
+          where: { idutilizator: tichet.idsuport },
+        });
+        await prisma.istorictichet.create({
+          data: {
+            idtichet: idtichet,
+            modificare: `Mesaj trimis de client: ${user.email}`,
+            datacreare: dataCreare,
+          },
+        });
+        mesajTichet = await prisma.mesaje.create({
+          data: {
+            continut: mesaj,
+            idtichet: idtichet,
+            emitatormesaj: emitatorMesaj,
+            datacreare: dataCreare,
+            emailutilizator: user.email,
+            emailsuport: utilizator.email,
+          },
+        });
+        let timpPentruRaspuns = new Date();
+        timpPentruRaspuns.setHours(timpPentruRaspuns.getHours() + 24);
+
+        await prisma.tichet.update({
+          where: { idtichet: idtichet },
+          data: { timpPentruRaspuns: timpPentruRaspuns, idstatus: 2 },
+        });
+      }
+    } catch (error) {
+      console.log(error);
     }
-  } catch (error) {
-    console.log(error);
+    return mesajTichet;
+  } else {
+    return "Tichetul nu poate fi actualizat deoarece este deja inchis.";
   }
-  return mesajTichet;
 };
 
 tichetRouter.post(
@@ -875,10 +919,19 @@ tichetRouter.post(
       const { user } = { ...req };
       const { mesaj } = { ...req.body };
 
-      if (mesaj) {
-        await insertMesajTichet(Number(idtichet), user, mesaj);
+      if (mesaj !== undefined && mesaj.trim() !== "") {
+        let mesajFinal = await insertMesajTichet(Number(idtichet), user, mesaj);
+        if (
+          mesajFinal ===
+          "Tichetul nu poate fi actualizat deoarece este deja inchis."
+        ) {
+          res.status(403).send({
+            message:
+              "Tichetul nu poate fi actualizat deoarece este deja inchis.",
+          });
+        }
         res.status(200).send({ message: "Mesajul a fost trimis cu succes." });
-      } else {
+      } else if (!mesaj || mesaj.trim() === "") {
         res.status(400).send({ message: "Mesajul nu poate fi gol." });
       }
     } catch (error) {

@@ -8,6 +8,7 @@ import { companieRouter } from "./companie.js";
 import { membruEchipaRouter } from "./membruEchipa.js";
 import { tichetRouter } from "./tichet.js";
 import { istoricTichetRouter } from "./istoricTichet.js";
+import { statusRouter } from "./status.js";
 
 const rootRouter = express.Router();
 
@@ -20,5 +21,6 @@ rootRouter.use("/echipaCompanie", echipaCompanieRouter);
 rootRouter.use("/membruEchipa", membruEchipaRouter);
 rootRouter.use("/tichete", tichetRouter);
 rootRouter.use("/istoricTichet", istoricTichetRouter);
+rootRouter.use("/status", statusRouter);
 
 export { rootRouter };
