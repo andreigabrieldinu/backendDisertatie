@@ -99,7 +99,7 @@ const insertTichet = async (
       }
       let tipTichet = user.tiputilizator;
       let dataCreare = new Date().toISOString();
-      let idstatus = 4; // Caz nou
+      let idstatus = 3; // Caz nou
       let idSuport = await getAdminTicheteMinime(specializare);
       let timpPtRaspuns = new Date();
       timpPtRaspuns.setHours(timpPtRaspuns.getHours() + 11);
@@ -159,7 +159,7 @@ const insertTichet = async (
         const subscriptie = await getSubscriptie(companie.tipsubscriptie);
         let tipTichet = user.tiputilizator;
         let dataCreare = new Date().toISOString();
-        let idstatus = 4; // Caz nou
+        let idstatus = 3; // Caz nou
         let idSuport = await getAdminTicheteMinime(specializare);
         let timpPtRaspuns = new Date();
         timpPtRaspuns.setHours(timpPtRaspuns.getHours() + 3);
@@ -310,7 +310,7 @@ const insertConsult = async (idtichetparinte, user, body) => {
       const subscriptie = await getSubscriptie(companie.tipsubscriptie);
       let tipTichet = "consult";
       let dataCreare = new Date().toISOString();
-      let idstatus = 4; // Caz nou
+      let idstatus = 3; // Caz nou
       let idSuport = await getAdminTicheteMinime(body.specializare);
       let timpPtRaspuns = new Date();
       timpPtRaspuns.setHours(timpPtRaspuns.getHours() + 3);
@@ -447,7 +447,7 @@ const insertBug = async (idtichetparinte, user, body) => {
         const subscriptie = await getSubscriptie(companie.tipsubscriptie);
         let tipTichet = "bug";
         let dataCreare = new Date().toISOString();
-        let idstatus = 4; // Caz nou
+        let idstatus = 3; // Caz nou
         let idSuport = await getAdminTicheteMinime(body.specializare);
         let timpPtRaspuns = new Date();
         timpPtRaspuns.setHours(timpPtRaspuns.getHours() + 3);
@@ -631,7 +631,7 @@ const getTicheteleMele = async (user) => {
           idsuport: Number(user.idutilizator),
           AND: {
             idstatus: {
-              in: [1, 2, 4, 5, 6],
+              in: [1, 2, 3, 4, 5],
             },
           },
         },
@@ -643,7 +643,7 @@ const getTicheteleMele = async (user) => {
           idutilizator: Number(user.idutilizator),
           AND: {
             idstatus: {
-              in: [1, 2, 4, 5, 6],
+              in: [1, 2, 4, 5, 3],
             },
           },
         },
@@ -716,7 +716,7 @@ const getTicheteleMeleInactive = async (user) => {
           idsuport: Number(user.idutilizator),
           AND: {
             idstatus: {
-              in: [7, 8, 9, 10, 11, 12],
+              in: [7, 8, 9, 10, 11, 6],
             },
           },
         },
@@ -728,7 +728,7 @@ const getTicheteleMeleInactive = async (user) => {
           idutilizator: Number(user.idutilizator),
           AND: {
             idstatus: {
-              in: [7, 8, 9, 10, 11, 12],
+              in: [7, 8, 9, 10, 11, 6],
             },
           },
         },
@@ -798,7 +798,7 @@ const updateTichet = async (idtichet, user, body) => {
     where: { idtichet: idtichet },
   });
   if (
-    tichetValidat.idstatus !== 12 &&
+    tichetValidat.idstatus !== 6 &&
     tichetValidat.idstatus !== 11 &&
     tichetValidat.idstatus !== 10 &&
     tichetValidat.idstatus !== 9 &&
@@ -943,7 +943,7 @@ const insertMesajTichet = async (idtichet, user, mesaj) => {
     where: { idtichet: idtichet },
   });
   if (
-    tichetValidat.idstatus !== 12 &&
+    tichetValidat.idstatus !== 6 &&
     tichetValidat.idstatus !== 11 &&
     tichetValidat.idstatus !== 10 &&
     tichetValidat.idstatus !== 9 &&

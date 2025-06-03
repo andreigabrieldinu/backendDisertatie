@@ -9,6 +9,7 @@ import { membruEchipaRouter } from "./membruEchipa.js";
 import { tichetRouter } from "./tichet.js";
 import { istoricTichetRouter } from "./istoricTichet.js";
 import { statusRouter } from "./status.js";
+import { dashboardDiferiteAgregariRouter } from "./dashboardDiferiteAgregari.js";
 
 const rootRouter = express.Router();
 
@@ -22,5 +23,6 @@ rootRouter.use("/membruEchipa", membruEchipaRouter);
 rootRouter.use("/tichete", tichetRouter);
 rootRouter.use("/istoricTichet", istoricTichetRouter);
 rootRouter.use("/status", statusRouter);
+rootRouter.use("/dashboardDiferiteAgregari", dashboardDiferiteAgregariRouter);
 
 export { rootRouter };
