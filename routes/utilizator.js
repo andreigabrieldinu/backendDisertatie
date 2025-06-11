@@ -56,16 +56,15 @@ async function esteUtilizatorClientSauAdmin(req, res, next) {
       res.sendStatus(401);
     }
   } catch (error) {
-    req.sesiuneExpirata = true;
     res.sendStatus(401);
   }
 }
 
-const updateLegareCompanie = async (email, numeCompanie) => {
+const updateLegareCompanie = async (id, idcompanie) => {
   let utilizator = null;
   try {
-    let companie = await prisma.companie.findFirst({
-      where: { nume: numeCompanie },
+    let companie = await prisma.companie.findUnique({
+      where: { idcompanie: idcompanie },
     });
     if (!companie) {
       return "Compania nu exista";
@@ -92,7 +91,7 @@ const updateLegareCompanie = async (email, numeCompanie) => {
       countUtilizatoriPeCompanie[0]._count.idcompanie
     ) {
       utilizator = await prisma.utilizator.update({
-        where: { email: email },
+        where: { idutilizator: id },
         data: {
           idcompanie: companie.idcompanie,
         },
@@ -208,6 +207,36 @@ utilizatorRouter.post(
   }
 );
 
+utilizatorRouter.get("/", esteUtilizatorAdmin, async (req, res) => {
+  try {
+    const utilizatori = await prisma.utilizator.findMany();
+
+    if (!utilizatori || utilizatori.length === 0) {
+      return res.status(404).send({ message: "Nu exista utilizatori" });
+    }
+    let utilizatoriToSend = [];
+    for (let utilizator of utilizatori) {
+      let utilizatorToSend = {
+        id: utilizator.idutilizator,
+        email: utilizator.email,
+        nume: utilizator.nume,
+        prenume: utilizator.prenume,
+        pozaprofil: utilizator.pozaprofil,
+        idcompanie: utilizator.idcompanie,
+        tichetValidareDeschis: utilizator.tichetValidareDeschis,
+        tipUtilizator: utilizator.tiputilizator,
+        specializare: utilizator.specializare,
+        datacreare: utilizator.datacreare.toISOString().substring(0, 10),
+      };
+      utilizatoriToSend.push(utilizatorToSend);
+    }
+    res.status(200).send(utilizatoriToSend);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error);
+  }
+});
+
 utilizatorRouter.get(
   "/auth/status",
   esteUtilizatorClientSauAdmin,
@@ -237,7 +266,7 @@ utilizatorRouter.get(
 utilizatorRouter.get(
   "/google/callback",
   passport.authenticate("google", {
-    successRedirect: "http://localhost:5000/acasa",
+    successRedirect: "http://localhost:5000",
     failureRedirect: "/api/v1/user/failure",
   })
 );
@@ -261,13 +290,18 @@ utilizatorRouter.get("/logout", (req, res) => {
 });
 
 utilizatorRouter.patch(
-  "/:email/legareCompanie",
+  "/:id/legareCompanie",
   //esteUtilizatorAdmin,
   async (req, res) => {
-    const { email } = { ...req.params };
-    const { numeCompanie } = { ...req.body };
+    const { id } = { ...req.params };
+    const { idcompanie } = { ...req.body };
+    console.log(req.body);
+
     try {
-      let utilizator = await updateLegareCompanie(email, numeCompanie);
+      let utilizator = await updateLegareCompanie(
+        Number(id),
+        Number(idcompanie)
+      );
       if (utilizator === "Compania nu exista") {
         res.status(404).send({ message: "Compania nu exista" });
       } else if (
@@ -280,7 +314,7 @@ utilizatorRouter.patch(
       } else {
         {
           res.status(200).send({
-            message: `Utilizatorul a fost asignat companiei "${numeCompanie}"`,
+            message: `Utilizatorul a fost asignat companiei "${idcompanie}"`,
           });
         }
       }
@@ -335,5 +369,41 @@ utilizatorRouter.patch(
     }
   }
 );
+
+utilizatorRouter.delete("/:id", esteUtilizatorAdmin, async (req, res) => {
+  const { id } = { ...req.params };
+
+  try {
+    if (!id || isNaN(Number(id))) {
+      return res.status(400).send({ message: "ID-ul nu este valid" });
+    }
+    let tichet = await prisma.tichet.findFirst({
+      where: { idutilizator: Number(id) },
+    });
+    let utilizator = null;
+    if (!tichet) {
+      utilizator = await prisma.utilizator.delete({
+        where: { idutilizator: Number(id) },
+      });
+    } else {
+      await prisma.istorictichet.deleteMany({
+        where: { idtichet: Number(tichet.idtichet) },
+      });
+      await prisma.mesaje.deleteMany({
+        where: { idtichet: Number(tichet.idtichet) },
+      });
+      await prisma.tichet.deleteMany({
+        where: { idutilizator: Number(id) },
+      });
+      utilizator = await prisma.utilizator.delete({
+        where: { idutilizator: Number(id) },
+      });
+    }
+    res.status(200).send(utilizator);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error);
+  }
+});
 
 export { utilizatorRouter, esteUtilizatorClientSauAdmin, esteUtilizatorAdmin };

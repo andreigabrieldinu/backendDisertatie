@@ -131,7 +131,7 @@ const insertTichet = async (
       });
       await prisma.istorictichet.create({
         data: {
-          idtichet: suport.idtichet,
+          idtichet: tichet.idtichet,
           datacreare: dataCreare,
           modificare: `Tichet deschis de ${user.email}`,
         },
@@ -955,7 +955,7 @@ const insertMesajTichet = async (idtichet, user, mesaj) => {
         emitatorMesaj = "admin";
 
         const utilizator = await prisma.utilizator.findUnique({
-          where: { idutilizator: tichet.idutilizator },
+          where: { idutilizator: tichetValidat.idutilizator },
         });
         await prisma.istorictichet.create({
           data: {
