@@ -47,17 +47,21 @@ passport.use(
         }
         return done(null, utilizator);
       } else {
-        await prisma.utilizator.update({
-          where: {
-            idutilizator: utilizator.idutilizator,
-          },
-          data: {
-            IdSessiune: sessionID,
-            timpAbsolutExpirareSesiune: _expires,
-          },
-        });
-        utilizator.IdSessiune = sessionID;
-        utilizator.timpAbsolutExpirareSesiune = _expires;
+        try {
+          await prisma.utilizator.update({
+            where: {
+              idutilizator: utilizator.idutilizator,
+            },
+            data: {
+              IdSessiune: sessionID,
+              timpAbsolutExpirareSesiune: _expires,
+            },
+          });
+          utilizator.IdSessiune = sessionID;
+          utilizator.timpAbsolutExpirareSesiune = _expires;
+        } catch (error) {
+          console.log(error);
+        }
       }
       return done(null, utilizator);
     }

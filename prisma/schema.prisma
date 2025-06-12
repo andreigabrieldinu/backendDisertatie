@@ -18,8 +18,8 @@ model companie {
   tipsubscriptie       String?         @db.VarChar(30)
   idechipa             Int?
   PretLunarFocus       Int?
-  echipacompanie       echipacompanie? @relation(fields: [idechipa], references: [idechipa], onDelete: NoAction, onUpdate: NoAction)
-  subscriptie          subscriptie?    @relation(fields: [tipsubscriptie], references: [tip], onDelete: NoAction, onUpdate: NoAction)
+  echipacompanie       echipacompanie? @relation(fields: [idechipa], references: [idechipa], onDelete: NoAction, onUpdate: Cascade)
+  subscriptie          subscriptie?    @relation(fields: [tipsubscriptie], references: [tip], onDelete: NoAction, onUpdate: Cascade)
   utilizator           utilizator[]
 }
 

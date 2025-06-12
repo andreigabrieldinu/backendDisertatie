@@ -43,10 +43,10 @@ const insertMembruEchipa = async (nume, prenume, rol, email, numeEchipa) => {
   return membruEchipa;
 };
 
-const getMembriEchipa = async (numeEchipa) => {
+const getMembriEchipa = async (id) => {
   let membriEchipa = null;
   try {
-    const echipa = await getEchipaCompanie(numeEchipa);
+    const echipa = await getEchipaCompanie(id);
     if (!echipa) {
       return "Aceasta echipa nu exista";
     } else {
@@ -98,41 +98,37 @@ const deleteMembruEchipa = async (email) => {
   return membruEchipa;
 };
 
-membruEchipaRouter.post(
-  "/",
-  //esteUtilizatorAdmin,
-  async (req, res) => {
-    try {
-      const { nume, prenume, rol, email, numeEchipa } = { ...req.body };
-      let membruEchipa = await insertMembruEchipa(
-        nume,
-        prenume,
-        rol,
-        email,
-        numeEchipa
-      );
-      switch (membruEchipa) {
-        case "Aceasta echipa nu exista":
-          res.status(404).send({ message: "Aceasta echipa nu exista" });
-          break;
-        case "Membrul echipei deja exista":
-          res.status(409).send({ message: "Membrul echipei deja exista" });
-          break;
-        case "Adaugati un nume de echipa":
-          res.status(400).send({ message: "Adaugati un nume de echipa" });
-          break;
-        default:
-          res.status(201).send(membruEchipa);
-      }
-    } catch (error) {
-      res.status(500).send(error);
+membruEchipaRouter.post("/", esteUtilizatorAdmin, async (req, res) => {
+  try {
+    const { nume, prenume, rol, email, numeEchipa } = { ...req.body };
+    let membruEchipa = await insertMembruEchipa(
+      nume,
+      prenume,
+      rol,
+      email,
+      numeEchipa
+    );
+    switch (membruEchipa) {
+      case "Aceasta echipa nu exista":
+        res.status(404).send({ message: "Aceasta echipa nu exista" });
+        break;
+      case "Membrul echipei deja exista":
+        res.status(409).send({ message: "Membrul echipei deja exista" });
+        break;
+      case "Adaugati un nume de echipa":
+        res.status(400).send({ message: "Adaugati un nume de echipa" });
+        break;
+      default:
+        res.status(201).send(membruEchipa);
     }
+  } catch (error) {
+    res.status(500).send(error);
   }
-);
+});
 
 membruEchipaRouter.get(
   "/:id",
-  //esteUtilizatorAdmin
+  esteUtilizatorClientSauAdmin,
   async (req, res) => {
     try {
       const { id } = { ...req.params };
@@ -150,7 +146,7 @@ membruEchipaRouter.get(
 
 membruEchipaRouter.get(
   "/membru/:email",
-  //esteUtilizatorAdmin
+  esteUtilizatorAdmin,
   async (req, res) => {
     try {
       const { email } = { ...req.params };
@@ -166,22 +162,18 @@ membruEchipaRouter.get(
   }
 );
 
-membruEchipaRouter.delete(
-  "/:email",
-  //esteUtilizatorAdmin
-  async (req, res) => {
-    try {
-      const { email } = { ...req.params };
-      const membruEchipa = await deleteMembruEchipa(email);
-      if (membruEchipa === "Membrul echipei nu exista") {
-        res.status(404).send({ message: "Membrul echipei nu exista" });
-      } else {
-        res.status(200).send({ message: membruEchipa });
-      }
-    } catch (error) {
-      res.status(500).send(error);
+membruEchipaRouter.delete("/:email", esteUtilizatorAdmin, async (req, res) => {
+  try {
+    const { email } = { ...req.params };
+    const membruEchipa = await deleteMembruEchipa(email);
+    if (membruEchipa === "Membrul echipei nu exista") {
+      res.status(404).send({ message: "Membrul echipei nu exista" });
+    } else {
+      res.status(200).send({ message: membruEchipa });
     }
+  } catch (error) {
+    res.status(500).send(error);
   }
-);
+});
 
 export { membruEchipaRouter };

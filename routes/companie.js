@@ -15,7 +15,8 @@ const insertCompanie = async (
   tipSubscriptie,
   focus,
   notiteDespreCompanie,
-  numeEchipa
+  idEchipa,
+  PretLunarFocus
 ) => {
   let companie = null;
   try {
@@ -25,7 +26,7 @@ const insertCompanie = async (
     let subscriptie = await getSubscriptie(tipSubscriptie);
 
     if (subscriptie) {
-      let echipa = await getEchipaCompanie(numeEchipa);
+      let echipa = await getEchipaCompanie(idEchipa);
       if (!echipa) {
         return "Compania trebuie sa aiba o echipa";
       } else {
@@ -39,6 +40,7 @@ const insertCompanie = async (
             focus: focus,
             notitedesprecompanie: notiteDespreCompanie,
             idechipa: echipa.idechipa,
+            PretLunarFocus: PretLunarFocus,
           },
         });
       }
@@ -83,21 +85,53 @@ const getCompanii = async () => {
   let companii = null;
   try {
     companii = await prisma.companie.findMany();
-    if (companii) return "Nu exista companii";
+    if (!companii || companii.length === 0) {
+      return res.status(404).send({ message: "Nu exista companii" });
+    }
+    let companiiToSend = [];
+    for (let companie of companii) {
+      let companieToSend = {
+        id: companie.idcompanie,
+        nume: companie.nume,
+        datacreare: companie.datacreare,
+        status: companie.status,
+        focus: companie.focus,
+        notitedesprecompanie: companie.notitedesprecompanie,
+        tipsubscriptie: companie.tipsubscriptie,
+        idechipa: companie.idechipa,
+        pretLunarFocus: companie.PretLunarFocus,
+      };
+      companiiToSend.push(companieToSend);
+    }
+
+    if (!companii) return "Nu exista companii";
+    companii = companiiToSend;
   } catch (error) {
     console.log(error);
   }
   return companii;
 };
 
-const updateCompanie = async (nume, data) => {
+const updateCompanie = async (id, data) => {
   let companie = null;
   try {
-    companie = await prisma.companie.findFirst({ where: { nume: nume } });
-    let id = companie.idcompanie;
+    let companieVeche = await prisma.companie.findUnique({
+      where: { idcompanie: Number(id) },
+    });
     companie = await prisma.companie.update({
-      where: { idcompanie: id },
-      data,
+      where: { idcompanie: Number(id) },
+      data: {
+        tipsubscriptie: data.tipsubscriptie
+          ? data.tipsubscriptie
+          : companieVeche.tipsubscriptie,
+
+        status: data.status ? data.status : companieVeche.status,
+        focus:
+          data.focus === true || data.focus === false
+            ? data.focus
+            : companieVeche.focus,
+        idechipa: data.idechipa ? data.idechipa : companieVeche.idechipa,
+      },
     });
   } catch (error) {
     console.log(error);
@@ -105,50 +139,44 @@ const updateCompanie = async (nume, data) => {
   return companie;
 };
 
-companieRouter.post(
-  "/",
-  //  esteUtilizatorAdmin,
-  async (req, res) => {
-    const {
+companieRouter.post("/", esteUtilizatorAdmin, async (req, res) => {
+  const {
+    nume,
+    status,
+    tipSubscriptie,
+    focus,
+    notiteDespreCompanie,
+    idechipa,
+    pretLunarFocus,
+  } = { ...req.body };
+  try {
+    let companie = await insertCompanie(
       nume,
       status,
       tipSubscriptie,
       focus,
       notiteDespreCompanie,
-      numeEchipa,
-      pretLunarFocus,
-    } = { ...req.body };
-    try {
-      let companie = await insertCompanie(
-        nume,
-        status,
-        tipSubscriptie,
-        focus,
-        notiteDespreCompanie,
-        numeEchipa,
-        pretLunarFocus
-      );
-      switch (companie) {
-        case "Compania deja exista.":
-          res.status(409).send({ message: "Compania deja exista." });
-          break;
-        case "Compania trebuie sa aiba o echipa":
-          res
-            .status(400)
-            .send({ message: "Compania trebuie sa aiba o echipa" });
-          break;
-        case "Tipul subscriptiei nu exista.":
-          res.status(400).send({ message: "Tipul subscriptiei nu exista." });
-          break;
-        default:
-          res.status(201).send({ message: "Compania a fost creata." });
-          break;
-      }
-    } catch (error) {
-      res.status(500).send(error);
+      idechipa,
+      pretLunarFocus
+    );
+    switch (companie) {
+      case "Compania deja exista.":
+        res.status(409).send({ message: "Compania deja exista." });
+        break;
+      case "Compania trebuie sa aiba o echipa":
+        res.status(400).send({ message: "Compania trebuie sa aiba o echipa" });
+        break;
+      case "Tipul subscriptiei nu exista.":
+        res.status(400).send({ message: "Tipul subscriptiei nu exista." });
+        break;
+      default:
+        res.status(201).send({ message: "Compania a fost creata." });
+        break;
     }
+  } catch (error) {
+    res.status(500).send(error);
   }
-);
+});
 
 companieRouter.get("/:id", esteUtilizatorClientSauAdmin, async (req, res) => {
   try {
@@ -171,41 +199,50 @@ companieRouter.get("/:id", esteUtilizatorClientSauAdmin, async (req, res) => {
   }
 });
 
-companieRouter.get(
-  "/",
-  //esteUtilizatorAdmin
-  async (req, res) => {
-    try {
-      const companii = await getCompanii();
-      if (companii === "Nu exista companii") {
-        res.status(404).send({ message: "Nu exista companii" });
-      } else {
-        res.status(200).send(companii);
-      }
-    } catch (error) {
-      res.status(500).send(error);
-    }
-  }
-);
+companieRouter.get("/", esteUtilizatorAdmin, async (req, res) => {
+  try {
+    const companii = await getCompanii();
 
-companieRouter.patch(
-  "/:nume",
-  //esteUtilizatorAdmin,
-  async (req, res) => {
-    try {
-      const { nume } = { ...req.params };
-      const data = { ...req.body };
-
-      let companie = await updateCompanie(nume, data);
-      if (companie) {
-        res.status(200).send({ message: "Compania a fost actualizata." });
-      } else {
-        res.status(404).send({ message: "Compania nu exista." });
-      }
-    } catch (error) {
-      res.status(500).send(error);
+    if (companii === "Nu exista companii") {
+      res.status(404).send({ message: "Nu exista companii" });
+    } else {
+      res.status(200).send(companii);
     }
+  } catch (error) {
+    res.status(500).send(error);
   }
-);
+});
+
+companieRouter.patch("/:id", esteUtilizatorAdmin, async (req, res) => {
+  try {
+    const { id } = { ...req.params };
+    const data = { ...req.body };
+
+    console.log("Data primita pentru update:", data);
+    let companie = await updateCompanie(id, data);
+    if (companie) {
+      res.status(200).send(companie);
+    } else {
+      res.status(404).send({ message: "Compania nu exista." });
+    }
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).send(error);
+  }
+});
+
+companieRouter.delete("/:id", esteUtilizatorAdmin, async (req, res) => {
+  try {
+    const { id } = { ...req.params };
+    const companie = await prisma.companie.delete({
+      where: { idcompanie: Number(id) },
+    });
+    res.status(200).send({ message: "Compania a fost stearsa." });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error);
+  }
+});
 
 export { companieRouter, getCompanie };

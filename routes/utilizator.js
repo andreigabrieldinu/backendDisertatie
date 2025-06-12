@@ -295,7 +295,6 @@ utilizatorRouter.patch(
   async (req, res) => {
     const { id } = { ...req.params };
     const { idcompanie } = { ...req.body };
-    console.log(req.body);
 
     try {
       let utilizator = await updateLegareCompanie(
