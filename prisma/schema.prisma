@@ -39,7 +39,7 @@ model istorictichet {
 }
 
 model membruechipa {
-  idmembru       Int            @id @default(autoincrement())
+  id             Int            @id @default(autoincrement())
   nume           String         @db.VarChar(50)
   prenume        String         @db.VarChar(50)
   rol            String         @db.VarChar(100)
@@ -98,8 +98,8 @@ model tichet {
   consult                                    Int             @default(0)
   istorictichet                              istorictichet[]
   mesaje                                     mesaje[]
-  utilizator_tichet_idsuportToutilizator     utilizator      @relation("tichet_idsuportToutilizator", fields: [idsuport], references: [idutilizator], onDelete: NoAction, onUpdate: NoAction)
-  utilizator_tichet_idutilizatorToutilizator utilizator      @relation("tichet_idutilizatorToutilizator", fields: [idutilizator], references: [idutilizator], onDelete: NoAction, onUpdate: NoAction)
+  utilizator_tichet_idsuportToutilizator     utilizator      @relation("tichet_idsuportToutilizator", fields: [idsuport], references: [idutilizator], onDelete: NoAction, onUpdate: Cascade)
+  utilizator_tichet_idutilizatorToutilizator utilizator      @relation("tichet_idutilizatorToutilizator", fields: [idutilizator], references: [idutilizator], onDelete: NoAction, onUpdate: Cascade)
 }
 
 model utilizator {

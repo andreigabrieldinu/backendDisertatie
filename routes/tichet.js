@@ -416,24 +416,12 @@ tichetRouter.post(
   }
 );
 
-const getAllTichete = async () => {
-  return await prisma.tichet.findMany();
-};
-
-tichetRouter.get("/", esteUtilizatorAdmin, async (req, res) => {
-  try {
-    let tichete = await getAllTichete();
-    res.status(200).send(tichete);
-  } catch (error) {
-    res.status(500).send(error);
-  }
-});
-
 const insertBug = async (idtichetparinte, user, body) => {
   try {
     if (user.tiputilizator === "admin" && idtichetparinte) {
       let tichetParinte = await prisma.tichet.findUnique({
         where: { idtichet: idtichetparinte },
+        f,
       });
       if (tichetParinte.idsuport === user.idutilizator) {
         let utilizator = await prisma.utilizator.findUnique({
@@ -636,7 +624,34 @@ const getTicheteleMele = async (user) => {
           },
         },
       });
-      return tichete;
+      let ticheteNoi = [];
+      for (let tichet of tichete) {
+        let suport = await prisma.utilizator.findUnique({
+          where: { idutilizator: tichet.idsuport },
+        });
+        let numeStatus = await prisma.statustichete.findUnique({
+          where: { idstatus: tichet.idstatus },
+        });
+        let numeSpecializare = await prisma.specializare.findUnique({
+          where: {
+            idspecializare: tichet.idspecializare,
+          },
+        });
+        let tichetDeTrimis = {
+          idtichet: tichet.idtichet,
+          titlu: tichet.titlu,
+          prioritate: tichet.prioritate,
+          datacreare: tichet.datacreare,
+          produs: tichet.produs,
+          escalat: tichet.escalat,
+          notite: tichet.notite,
+          status: numeStatus.nume,
+          specializare: numeSpecializare.nume,
+          timpPentruRaspuns: tichet.timpPentruRaspuns,
+        };
+        ticheteNoi.push(tichetDeTrimis);
+      }
+      return ticheteNoi;
     } else if (user.tiputilizator === "client") {
       tichete = await prisma.tichet.findMany({
         where: {
@@ -721,7 +736,35 @@ const getTicheteleMeleInactive = async (user) => {
           },
         },
       });
-      return tichete;
+      let ticheteNoi = [];
+      for (let tichet of tichete) {
+        let suport = await prisma.utilizator.findUnique({
+          where: { idutilizator: tichet.idsuport },
+        });
+        let numeStatus = await prisma.statustichete.findUnique({
+          where: { idstatus: tichet.idstatus },
+        });
+        let numeSpecializare = await prisma.specializare.findUnique({
+          where: {
+            idspecializare: tichet.idspecializare,
+          },
+        });
+
+        let tichetDeTrimis = {
+          idtichet: tichet.idtichet,
+          titlu: tichet.titlu,
+          prioritate: tichet.prioritate,
+          datacreare: tichet.datacreare,
+          produs: tichet.produs,
+          escalat: tichet.escalat,
+          notite: tichet.notite,
+          status: numeStatus.nume,
+          specializare: numeSpecializare.nume,
+          datainchidere: tichet.datainchidere,
+        };
+        ticheteNoi.push(tichetDeTrimis);
+      }
+      return ticheteNoi;
     } else if (user.tiputilizator === "client") {
       tichete = await prisma.tichet.findMany({
         where: {
@@ -848,6 +891,17 @@ const updateTichet = async (idtichet, user, body) => {
           data: body,
         });
       } else if (user.tiputilizator === "admin") {
+        if (
+          tichetValidat.escalat !== body.escalat &&
+          body.escalat !== undefined
+        ) {
+          await insertIstoricTichet(
+            idtichet,
+            `Tichetul ${idtichet} a fost ${
+              body.escalat ? "escalat" : "deescalat"
+            } de catre ${user.email}.`
+          );
+        }
         if (body.consult) {
           await insertIstoricTichet(
             idtichet,
@@ -861,10 +915,12 @@ const updateTichet = async (idtichet, user, body) => {
           );
         }
         if (body.prioritate) {
-          await insertIstoricTichet(
-            idtichet,
-            `Tichetul ${idtichet} a fost reprioritizat la ${body.prioritate} de ${user.email}.`
-          );
+          if (body.prioritate !== tichetValidat.prioritate) {
+            await insertIstoricTichet(
+              idtichet,
+              `Tichetul ${idtichet} a fost reprioritizat la ${body.prioritate} de ${user.email}.`
+            );
+          }
         }
         if (body.idsuport) {
           let suport = await prisma.utilizator.findUnique({
@@ -876,14 +932,44 @@ const updateTichet = async (idtichet, user, body) => {
           );
         }
         if (body.idstatus) {
-          let status = await prisma.statustichete.findUnique({
-            where: { idstatus: body.idstatus },
+          let status = await prisma.statustichete.findFirst({
+            where: { nume: { contains: body.idstatus, mode: "insensitive" } },
           });
-          await insertIstoricTichet(
-            idtichet,
-            `Statusul tichetului ${idtichet} a fost modificat in ${status.nume} de catre ${user.email}.`
-          );
+          if (status.idstatus !== tichetValidat.idstatus) {
+            await insertIstoricTichet(
+              idtichet,
+              `Statusul tichetului ${idtichet} a fost modificat in ${status.nume} de catre ${user.email}.`
+            );
+          }
+          body.idstatus = status.idstatus;
         }
+        if (body.idspecializare) {
+          let specializare = await prisma.specializare.findUnique({
+            where: { idspecializare: Number(body.idspecializare) },
+          });
+          if (specializare.idspecializare !== tichetValidat.idspecializare) {
+            await insertIstoricTichet(
+              idtichet,
+              `Specializarea tichetului ${idtichet} a fost modificat in ${specializare.nume} de catre ${user.email}.`
+            );
+          }
+          body.idspecializare = specializare.idspecializare;
+        }
+
+        if (body.produs) {
+          let produs = await prisma.produse.findUnique({
+            where: { idprodus: Number(body.produs) },
+          });
+
+          if (produs.nume !== tichetValidat.produs) {
+            await insertIstoricTichet(
+              idtichet,
+              `Produsul tichetului ${idtichet} a fost modificat in ${produs.nume} de catre ${user.email}.`
+            );
+          }
+          body.produs = produs.nume;
+        }
+
         tichet = await prisma.tichet.update({
           where: { idtichet: idtichet },
           data: body,
@@ -1070,7 +1156,7 @@ const getMesajeTichet = async (idtichet, user) => {
         mesajeFinale = mesaje.concat(istoricTichet);
         for (let i = 0; i < mesajeFinale.length - 1; i++) {
           for (let j = i + 1; j < mesajeFinale.length; j++) {
-            if (mesajeFinale[i].datacreare > mesajeFinale[j].datacreare) {
+            if (mesajeFinale[i].datacreare < mesajeFinale[j].datacreare) {
               let temp = mesajeFinale[i];
               mesajeFinale[i] = mesajeFinale[j];
               mesajeFinale[j] = temp;
@@ -1091,7 +1177,7 @@ const getMesajeTichet = async (idtichet, user) => {
       mesajeFinale = mesaje.concat(istoricTichet);
       for (let i = 0; i < mesajeFinale.length - 1; i++) {
         for (let j = i + 1; j < mesajeFinale.length; j++) {
-          if (mesajeFinale[i].datacreare > mesajeFinale[j].datacreare) {
+          if (mesajeFinale[i].datacreare < mesajeFinale[j].datacreare) {
             let temp = mesajeFinale[i];
             mesajeFinale[i] = mesajeFinale[j];
             mesajeFinale[j] = temp;
