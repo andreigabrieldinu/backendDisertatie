@@ -392,14 +392,14 @@ const insertConsult = async (idtichetparinte, user, body) => {
 };
 
 tichetRouter.post(
-  "/:idtichetparinte/consult",
+  "/:idtichet/consult",
   esteUtilizatorAdmin,
   async (req, res) => {
     try {
-      const { idtichetparinte } = { ...req.params };
+      const { idtichet } = { ...req.params };
       const { user } = { ...req };
       const { body } = { ...req };
-      const tichet = await insertConsult(Number(idtichetparinte), user, body);
+      const tichet = await insertConsult(Number(idtichet), user, body);
       if (tichet === "Doar proprietarul cazului poate deschide consult.") {
         res.status(403).send({
           message: "Doar proprietarul cazului poate deschide consult.",
@@ -522,30 +522,26 @@ const insertBug = async (idtichetparinte, user, body) => {
   }
 };
 
-tichetRouter.post(
-  "/:idtichetparinte/bug",
-  esteUtilizatorAdmin,
-  async (req, res) => {
-    try {
-      const { idtichetparinte } = { ...req.params };
-      const { user } = { ...req };
-      const { body } = { ...req };
-      const tichet = await insertBug(Number(idtichetparinte), user, body);
-      if (tichet === "Doar proprietarul cazului poate deschide bug.") {
-        res
-          .status(403)
-          .send({ message: "Doar proprietarul cazului poate deschide bug." });
-      } else {
-        res.status(200).send({
-          message: "Bugul a fost creat cu succes cu detaliile primite.",
-        });
-      }
-    } catch (error) {
-      console.log(error);
-      res.status(500).send(error);
+tichetRouter.post("/:idtichet/bug", esteUtilizatorAdmin, async (req, res) => {
+  try {
+    const { idtichet } = { ...req.params };
+    const { user } = { ...req };
+    const { body } = { ...req };
+    const tichet = await insertBug(Number(idtichet), user, body);
+    if (tichet === "Doar proprietarul cazului poate deschide bug.") {
+      res
+        .status(403)
+        .send({ message: "Doar proprietarul cazului poate deschide bug." });
+    } else {
+      res.status(200).send({
+        message: "Bugul a fost creat cu succes cu detaliile primite.",
+      });
     }
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error);
   }
-);
+});
 
 const getTichet = async (user, idtichet) => {
   let tichet = null;
@@ -940,6 +936,19 @@ const updateTichet = async (idtichet, user, body) => {
               idtichet,
               `Statusul tichetului ${idtichet} a fost modificat in ${status.nume} de catre ${user.email}.`
             );
+            if (
+              status.idstatus === 6 ||
+              status.idstatus === 11 ||
+              status.idstatus === 10 ||
+              status.idstatus === 9 ||
+              status.idstatus === 8 ||
+              status.idstatus === 7
+            ) {
+              await prisma.tichet.update({
+                where: { idtichet: idtichet },
+                data: { datainchidere: new Date().toISOString() },
+              });
+            }
           }
           body.idstatus = status.idstatus;
         }
