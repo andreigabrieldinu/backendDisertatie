@@ -304,6 +304,7 @@ const insertConsult = async (idtichetparinte, user, body) => {
           idutilizator: tichetParinte.idutilizator,
         },
       });
+
       let companie = await prisma.companie.findUnique({
         where: { idcompanie: utilizator.idcompanie },
       });
@@ -332,7 +333,7 @@ const insertConsult = async (idtichetparinte, user, body) => {
           break;
         case "P3":
           if (subscriptie.tip === "Bronze" || subscriptie.tip === "Silver") {
-            timpP1 = Number(subscriptie.p3, substring(0, 1));
+            timpP1 = Number(subscriptie.p3.substring(0, 1));
             timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
           } else {
             timpP1 = Number(subscriptie.p3.substring(0, 2));
@@ -373,7 +374,7 @@ const insertConsult = async (idtichetparinte, user, body) => {
       };
       let istoricTichet = await prisma.tichet.create({ data: data });
 
-      const consult = await prisma.istorictichet.create({
+      await prisma.istorictichet.create({
         data: {
           idtichet: istoricTichet.idtichet,
           datacreare: dataCreare,
@@ -382,7 +383,7 @@ const insertConsult = async (idtichetparinte, user, body) => {
       });
       await prisma.tichet.update({
         where: { idtichet: idtichetparinte },
-        data: { consult: istoricTichet.idtichet },
+        data: { consult: istoricTichet.idtichet, idstatus: 4 }, // Caz nou
       });
       return "Tichetul a fost creat cu succes cu detaliile primite";
     } else {
@@ -405,7 +406,7 @@ tichetRouter.post(
           message: "Doar proprietarul cazului poate deschide consult.",
         });
       } else {
-        res.status(200).send({
+        res.status(201).send({
           message: "Consultul a fost creat cu succes cu detaliile primite.",
         });
       }
@@ -421,8 +422,10 @@ const insertBug = async (idtichetparinte, user, body) => {
     if (user.tiputilizator === "admin" && idtichetparinte) {
       let tichetParinte = await prisma.tichet.findUnique({
         where: { idtichet: idtichetparinte },
-        f,
       });
+      if (tichetParinte.bug !== 0) {
+        return "Bugul a fost deja deschis pentru acest tichet.";
+      }
       if (tichetParinte.idsuport === user.idutilizator) {
         let utilizator = await prisma.utilizator.findUnique({
           where: {
@@ -460,7 +463,7 @@ const insertBug = async (idtichetparinte, user, body) => {
             break;
           case "P3":
             if (subscriptie.tip === "Bronze" || subscriptie.tip === "Silver") {
-              timpP1 = Number(subscriptie.p3, substring(0, 1));
+              timpP1 = Number(subscriptie.p3.substring(0, 1));
               timpPtRaspuns.setDate(timpPtRaspuns.getDate() + timpP1);
             } else {
               timpP1 = Number(subscriptie.p3.substring(0, 2));
@@ -503,7 +506,10 @@ const insertBug = async (idtichetparinte, user, body) => {
         let istoicTichet = await prisma.tichet.create({ data: data });
         await prisma.tichet.update({
           where: { idtichet: idtichetparinte },
-          data: { bug: istoicTichet.idtichet },
+          data: {
+            bug: istoicTichet.idtichet,
+            idstatus: 5, // Caz nou
+          },
         });
         await prisma.istorictichet.create({
           data: {
@@ -512,6 +518,7 @@ const insertBug = async (idtichetparinte, user, body) => {
             modificare: `Bug deschis de ${user.email}`,
           },
         });
+
         return "Bugul a fost creat cu succes cu detaliile primite.";
       } else {
         return "Doar proprietarul cazului poate deschide bug.";
@@ -532,8 +539,12 @@ tichetRouter.post("/:idtichet/bug", esteUtilizatorAdmin, async (req, res) => {
       res
         .status(403)
         .send({ message: "Doar proprietarul cazului poate deschide bug." });
+    } else if (tichet === "Bugul a fost deja deschis pentru acest tichet.") {
+      res.status(409).send({
+        message: "Bugul a fost deja deschis pentru acest tichet.",
+      });
     } else {
-      res.status(200).send({
+      res.status(201).send({
         message: "Bugul a fost creat cu succes cu detaliile primite.",
       });
     }
@@ -644,6 +655,9 @@ const getTicheteleMele = async (user) => {
           status: numeStatus.nume,
           specializare: numeSpecializare.nume,
           timpPentruRaspuns: tichet.timpPentruRaspuns,
+          bug: tichet.bug,
+          consult: tichet.consult,
+          idsuport: tichet.idsuport,
         };
         ticheteNoi.push(tichetDeTrimis);
       }
@@ -887,6 +901,17 @@ const updateTichet = async (idtichet, user, body) => {
           data: body,
         });
       } else if (user.tiputilizator === "admin") {
+        console.log("body", body);
+
+        if (body.idsuport) {
+          let suport = await prisma.utilizator.findUnique({
+            where: { idutilizator: Number(body.idsuport) },
+          });
+          await insertIstoricTichet(
+            idtichet,
+            `Tichetul ${idtichet} a fost asignat pe ${suport.email} de ${user.email}.`
+          );
+        }
         if (
           tichetValidat.escalat !== body.escalat &&
           body.escalat !== undefined
@@ -904,12 +929,7 @@ const updateTichet = async (idtichet, user, body) => {
             `Tichetului ${idtichet} i-a fost deschis consult de catre ${user.email}.`
           );
         }
-        if (body.bug) {
-          await insertIstoricTichet(
-            idtichet,
-            `Tichetului ${idtichet} i-a fost deschis bug de catre ${user.email}.`
-          );
-        }
+
         if (body.prioritate) {
           if (body.prioritate !== tichetValidat.prioritate) {
             await insertIstoricTichet(
@@ -918,15 +938,7 @@ const updateTichet = async (idtichet, user, body) => {
             );
           }
         }
-        if (body.idsuport) {
-          let suport = await prisma.utilizator.findUnique({
-            where: { idutilizator: body.idsuport },
-          });
-          await insertIstoricTichet(
-            idtichet,
-            `Tichetul ${idtichet} a fost asignat pe ${suport.email} de ${user.email}.`
-          );
-        }
+
         if (body.idstatus) {
           let status = await prisma.statustichete.findFirst({
             where: { nume: { contains: body.idstatus, mode: "insensitive" } },
