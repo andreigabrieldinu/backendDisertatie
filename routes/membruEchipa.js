@@ -48,7 +48,7 @@ const getMembriEchipa = async (id) => {
     if (!echipa) {
       return "Aceasta echipa nu exista";
     } else {
-      membriEchipa = await prisma.membruechipa.findUnique({
+      membriEchipa = await prisma.membruechipa.findMany({
         where: { idechipa: Number(echipa.idechipa) },
       });
     }
@@ -151,6 +151,24 @@ membruEchipaRouter.get("/:id", esteUtilizatorAdmin, async (req, res) => {
     res.status(500).send(error);
   }
 });
+
+membruEchipaRouter.get(
+  "/toataEchipa/:id",
+  esteUtilizatorClientSauAdmin,
+  async (req, res) => {
+    try {
+      const { id } = { ...req.params };
+      const membriEchipa = await getMembriEchipa(Number(id));
+      if (membriEchipa === "Aceasta echipa nu exista") {
+        res.status(404).send({ message: "Aceasta echipa nu exista" });
+      } else {
+        res.status(200).send(membriEchipa);
+      }
+    } catch (error) {
+      res.status(500).send(error);
+    }
+  }
+);
 
 membruEchipaRouter.delete("/:id", esteUtilizatorAdmin, async (req, res) => {
   try {

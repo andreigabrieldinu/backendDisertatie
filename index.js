@@ -11,7 +11,6 @@ import cookieParser from "cookie-parser";
 dotenv.config();
 
 const app = express();
-const suportApp = express();
 
 app.use(
   cors({
@@ -40,7 +39,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use("/api/v1", rootRouter);
-app.use("/admin", suportApp);
 
 app.get("/", (req, res) => {
   res.send(`hello <a href="/api/v1/user/google/auth">Authgoogle </a>`);

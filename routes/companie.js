@@ -218,7 +218,6 @@ companieRouter.patch("/:id", esteUtilizatorAdmin, async (req, res) => {
     const { id } = { ...req.params };
     const data = { ...req.body };
 
-    console.log("Data primita pentru update:", data);
     let companie = await updateCompanie(id, data);
     if (companie) {
       res.status(200).send(companie);

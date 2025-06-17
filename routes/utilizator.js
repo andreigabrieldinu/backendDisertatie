@@ -230,6 +230,7 @@ utilizatorRouter.get("/", esteUtilizatorAdmin, async (req, res) => {
       };
       utilizatoriToSend.push(utilizatorToSend);
     }
+
     res.status(200).send(utilizatoriToSend);
   } catch (error) {
     console.log(error);
@@ -291,7 +292,7 @@ utilizatorRouter.get("/logout", (req, res) => {
 
 utilizatorRouter.patch(
   "/:id/legareCompanie",
-  //esteUtilizatorAdmin,
+  esteUtilizatorAdmin,
   async (req, res) => {
     const { id } = { ...req.params };
     const { idcompanie } = { ...req.body };
@@ -324,18 +325,18 @@ utilizatorRouter.patch(
   }
 );
 
-const updateLegareSpecializareSiAdmin = async (email, specializare) => {
+const updateLegareSpecializareSiAdmin = async (id, specializare) => {
   let utilizator = null;
   try {
     const specializareDB = await prisma.specializare.findFirst({
-      where: { nume: specializare },
+      where: { idspecializare: specializare },
     });
     if (!specializareDB) {
       return "Specializarea nu exista.";
     }
     utilizator = await prisma.utilizator.update({
       where: {
-        email: email,
+        idutilizator: id,
       },
       data: {
         tiputilizator: "admin",
@@ -349,18 +350,21 @@ const updateLegareSpecializareSiAdmin = async (email, specializare) => {
 };
 
 utilizatorRouter.patch(
-  "/:email/legareSpecializare",
+  "/:id/legareSpecializare",
   esteUtilizatorAdmin,
   async (req, res) => {
-    const { email } = { ...req.params };
+    const { id } = { ...req.params };
     const { specializare } = { ...req.body };
     try {
-      const user = await updateLegareSpecializareSiAdmin(email, specializare);
+      const user = await updateLegareSpecializareSiAdmin(
+        Number(id),
+        specializare
+      );
       if (user === "Specializarea nu exista.") {
         res.status(404).send({ message: "Specializarea nu exista." });
       } else {
         res.status(200).send({
-          message: `Specializarea ${specializare} a fost asignata contului ${email}`,
+          message: `Specializarea ${specializare} a fost asignata contului `,
         });
       }
     } catch (error) {

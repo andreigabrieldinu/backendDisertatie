@@ -656,6 +656,7 @@ const getTicheteleMele = async (user) => {
           specializare: numeSpecializare.nume,
           timpPentruRaspuns: tichet.timpPentruRaspuns,
           bug: tichet.bug,
+          tiptichet: tichet.tiptichet,
           consult: tichet.consult,
           idsuport: tichet.idsuport,
         };
@@ -771,6 +772,7 @@ const getTicheteleMeleInactive = async (user) => {
           status: numeStatus.nume,
           specializare: numeSpecializare.nume,
           datainchidere: tichet.datainchidere,
+          tiptichet: tichet.tiptichet,
         };
         ticheteNoi.push(tichetDeTrimis);
       }
@@ -901,8 +903,6 @@ const updateTichet = async (idtichet, user, body) => {
           data: body,
         });
       } else if (user.tiputilizator === "admin") {
-        console.log("body", body);
-
         if (body.idsuport) {
           let suport = await prisma.utilizator.findUnique({
             where: { idutilizator: Number(body.idsuport) },

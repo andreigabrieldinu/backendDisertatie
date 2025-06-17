@@ -275,8 +275,9 @@ const getTicheteDeschisePeZileInterval = async (user, startDate, endDate) => {
         }
       }
     }
+
     if (ticheteDeschisePeZile.length === 0) {
-      return [];
+      return [{ nrTichete: 0, data: endDate }];
     }
     return ticheteDeschisePeZile;
   } catch (error) {
@@ -357,6 +358,262 @@ dashboardDiferiteAgregariRouter.get(
       res.json(produsePeTicheteFinal);
     } catch (error) {
       console.error("Eroare la obtinerea produselor pe tichete:", error);
+      res.status(500).json({ message: "Eroare la obtinerea datelor" });
+    }
+  }
+);
+
+dashboardDiferiteAgregariRouter.get(
+  "/ticheteSpecializare/:idspecializare",
+  esteUtilizatorAdmin,
+  async (req, res) => {
+    try {
+      const { idspecializare } = req.params;
+
+      const ticheteSpecializare = await prisma.tichet.groupBy({
+        by: ["idstatus", "idsuport"],
+        _count: {
+          idtichet: true,
+        },
+        where: {
+          idspecializare: Number(idspecializare),
+          idstatus: { in: [1, 2, 3, 4, 5] },
+        },
+        orderBy: {
+          idstatus: "asc",
+        },
+      });
+      for (let i = 0; i < ticheteSpecializare.length; i++) {
+        const suport = await prisma.utilizator.findUnique({
+          where: { idutilizator: ticheteSpecializare[i].idsuport },
+          select: { nume: true, prenume: true },
+        });
+        delete ticheteSpecializare[i].idsuport;
+        ticheteSpecializare[i].numeSuport = suport
+          ? `${suport.nume} ${suport.prenume}`
+          : "N/A";
+        if (ticheteSpecializare[i].nrTichetePeStatus === undefined) {
+          ticheteSpecializare[i].nrTichetePeStatus = [];
+          let newStatusuriSiTichet;
+          newStatusuriSiTichet = {
+            idstatus: ticheteSpecializare[i].idstatus,
+            numarTichete: ticheteSpecializare[i]._count.idtichet,
+          };
+          ticheteSpecializare[i].nrTichetePeStatus.push(newStatusuriSiTichet);
+        } else {
+          let newStatusuriSiTichet;
+          newStatusuriSiTichet = {
+            idstatus: ticheteSpecializare[i].idstatus,
+            numarTichete: ticheteSpecializare[i]._count.idtichet,
+          };
+          ticheteSpecializare[i].nrTichetePeStatus.push(newStatusuriSiTichet);
+        }
+        delete ticheteSpecializare[i]._count;
+        delete ticheteSpecializare[i].idstatus;
+      }
+
+      ticheteSpecializare.sort((a, b) =>
+        a.numeSuport > b.numeSuport ? 1 : b.numeSuport > a.numeSuport ? -1 : 0
+      );
+
+      for (let i = 0; i < ticheteSpecializare.length; i++) {
+        for (let j = i + 1; j < ticheteSpecializare.length; j++) {
+          if (
+            ticheteSpecializare[i].numeSuport ===
+            ticheteSpecializare[j].numeSuport
+          ) {
+            ticheteSpecializare[i].nrTichetePeStatus.push({
+              idstatus: ticheteSpecializare[j].nrTichetePeStatus[0].idstatus,
+              numarTichete:
+                ticheteSpecializare[j].nrTichetePeStatus[0].numarTichete,
+            });
+            ticheteSpecializare.splice(j, 1);
+            j--;
+          }
+        }
+      }
+
+      let obiectDetrimis = {};
+
+      let seria1 = [];
+      let seria2 = [];
+      let seria3 = [];
+      let seria4 = [];
+      let seria5 = [];
+
+      for (let i = 0; i < ticheteSpecializare.length; i++) {
+        for (
+          let j = 0;
+          j < ticheteSpecializare[i].nrTichetePeStatus.length;
+          j++
+        ) {
+          if (
+            ticheteSpecializare[i].nrTichetePeStatus[j].idstatus === 1 &&
+            j === 0
+          ) {
+            seria1.push(
+              ticheteSpecializare[i].nrTichetePeStatus[j].numarTichete
+            );
+          } else if (j < 1) {
+            seria1.push(0);
+          } else if (
+            j >= 1 &&
+            ticheteSpecializare[i].nrTichetePeStatus[j].idstatus === 1
+          ) {
+            seria1.pop();
+            seria1.push(
+              ticheteSpecializare[i].nrTichetePeStatus[j].numarTichete
+            );
+          }
+
+          if (
+            ticheteSpecializare[i].nrTichetePeStatus[j].idstatus === 2 &&
+            j === 0
+          ) {
+            seria2.push(
+              ticheteSpecializare[i].nrTichetePeStatus[j].numarTichete
+            );
+          } else if (j < 1) {
+            seria2.push(0);
+          } else if (
+            j >= 1 &&
+            ticheteSpecializare[i].nrTichetePeStatus[j].idstatus === 2
+          ) {
+            seria2.pop();
+            seria2.push(
+              ticheteSpecializare[i].nrTichetePeStatus[j].numarTichete
+            );
+          }
+          if (
+            ticheteSpecializare[i].nrTichetePeStatus[j].idstatus === 3 &&
+            j === 0
+          ) {
+            seria3.push(
+              ticheteSpecializare[i].nrTichetePeStatus[j].numarTichete
+            );
+          } else if (j < 1) {
+            seria3.push(0);
+          } else if (
+            j >= 1 &&
+            ticheteSpecializare[i].nrTichetePeStatus[j].idstatus === 3
+          ) {
+            seria3.pop();
+            seria3.push(
+              ticheteSpecializare[i].nrTichetePeStatus[j].numarTichete
+            );
+          }
+          if (
+            ticheteSpecializare[i].nrTichetePeStatus[j].idstatus === 4 &&
+            j === 0
+          ) {
+            seria4.push(
+              ticheteSpecializare[i].nrTichetePeStatus[j].numarTichete
+            );
+          } else if (j < 1) {
+            seria4.push(0);
+          } else if (
+            j >= 1 &&
+            ticheteSpecializare[i].nrTichetePeStatus[j].idstatus === 4
+          ) {
+            seria4.pop();
+            seria4.push(
+              ticheteSpecializare[i].nrTichetePeStatus[j].numarTichete
+            );
+          }
+          if (
+            ticheteSpecializare[i].nrTichetePeStatus[j].idstatus === 5 &&
+            j == 0
+          ) {
+            seria5.push(
+              ticheteSpecializare[i].nrTichetePeStatus[j].numarTichete
+            );
+          } else if (j < 1) {
+            seria5.push(0);
+          } else if (
+            j >= 1 &&
+            ticheteSpecializare[i].nrTichetePeStatus[j].idstatus === 5
+          ) {
+            seria5.pop();
+            seria5.push(
+              ticheteSpecializare[i].nrTichetePeStatus[j].numarTichete
+            );
+          }
+        }
+      }
+
+      let userToSends = [];
+      for (let i = 0; i < ticheteSpecializare.length; i++) {
+        userToSends.push(ticheteSpecializare[i].numeSuport);
+      }
+      obiectDetrimis = {
+        seria1: seria1,
+        seria2: seria2,
+        seria3: seria3,
+        seria4: seria4,
+        seria5: seria5,
+        users: userToSends,
+      };
+
+      if (ticheteSpecializare.length === 0) {
+        return res.status(404).json({
+          message: "Nu exista tichete pentru aceasta specializare",
+        });
+      }
+
+      res.json(obiectDetrimis);
+    } catch (error) {
+      console.error("Eroare la obtinerea tichete pe specializare:", error);
+      res.status(500).json({ message: "Eroare la obtinerea datelor" });
+    }
+  }
+);
+
+dashboardDiferiteAgregariRouter.get(
+  "/ticheteInchisePeProdus/:specializare",
+  // esteUtilizatorAdmin,
+  async (req, res) => {
+    try {
+      const specializare = req.params.specializare;
+
+      const ticheteInchisePeProdus = await prisma.tichet.groupBy({
+        by: ["produs"],
+        _count: {
+          idtichet: true,
+        },
+        where: {
+          idstatus: { in: [6, 7, 8, 9, 10, 11] },
+          idspecializare: Number(specializare),
+        },
+        orderBy: {
+          produs: "asc",
+        },
+      });
+
+      let produseInchise = ticheteInchisePeProdus.map((tichet) => {
+        return {
+          label: tichet.produs,
+          value: tichet._count.idtichet,
+        };
+      });
+
+      produseInchise = produseInchise.sort((a, b) =>
+        a.value > b.value ? -1 : b.value > a.value ? 1 : 0
+      );
+      let obiectDetrimis = { labels: [], values: [] };
+      for (let i = 0; i < produseInchise.length; i++) {
+        obiectDetrimis.labels.push(produseInchise[i].label);
+        obiectDetrimis.values.push(produseInchise[i].value);
+      }
+
+      if (produseInchise.length === 0 || !produseInchise) {
+        return res.status(404).json({
+          message: "Nu avem tichete inchise pentru aceasta specializare",
+        });
+      }
+
+      res.json(obiectDetrimis);
+    } catch (error) {
+      console.error("Eroare la obtinerea produselor inchise:", error);
       res.status(500).json({ message: "Eroare la obtinerea datelor" });
     }
   }
