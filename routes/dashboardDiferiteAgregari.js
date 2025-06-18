@@ -733,8 +733,6 @@ dashboardDiferiteAgregariRouter.get(
         obiectDetrimis["max"] = Math.max(...obiectDetrimis.values);
       }
 
-      console.log("Obiect trimis:", obiectDetrimis);
-
       res.json(obiectDetrimis);
     } catch (error) {
       console.error("Eroare la obtinerea tichete pe specializari:", error);
