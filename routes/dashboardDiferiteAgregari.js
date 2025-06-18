@@ -570,7 +570,7 @@ dashboardDiferiteAgregariRouter.get(
 
 dashboardDiferiteAgregariRouter.get(
   "/ticheteInchisePeProdus/:specializare",
-  // esteUtilizatorAdmin,
+  esteUtilizatorAdmin,
   async (req, res) => {
     try {
       const specializare = req.params.specializare;
@@ -621,7 +621,7 @@ dashboardDiferiteAgregariRouter.get(
 
 dashboardDiferiteAgregariRouter.get(
   "/tichetePeCompanii/:tipTichet",
-  //esteUtilizatorAdmin,
+  esteUtilizatorAdmin,
   async (req, res) => {
     try {
       const tipTichet = Number(req.params.tipTichet);
@@ -681,6 +681,63 @@ dashboardDiferiteAgregariRouter.get(
       res.json(obiectDetrimis);
     } catch (error) {
       console.error("Eroare la obtinerea tichete pe companii:", error);
+    }
+  }
+);
+
+dashboardDiferiteAgregariRouter.get(
+  "/ticheteSpecializari",
+  //esteUtilizatorAdmin,
+  async (req, res) => {
+    try {
+      const tichetePeSpecializari = await prisma.tichet.groupBy({
+        by: ["idspecializare"],
+        _count: {
+          idtichet: true,
+        },
+        where: {
+          idstatus: { in: [1, 2, 3, 4, 5] },
+        },
+        orderBy: {
+          idspecializare: "asc",
+        },
+      });
+
+      let specializari = await prisma.specializare.findMany({
+        select: {
+          idspecializare: true,
+          nume: true,
+        },
+      });
+
+      let obiectDetrimis = [];
+      for (let i = 0; i < tichetePeSpecializari.length; i++) {
+        let specializare = specializari.find(
+          (s) => s.idspecializare === tichetePeSpecializari[i].idspecializare
+        );
+        if (specializare) {
+          obiectDetrimis.push({
+            id: specializare.idspecializare,
+            label: specializare.nume,
+            value: tichetePeSpecializari[i]._count.idtichet,
+          });
+        }
+      }
+
+      //creeaza un obiect cu doua array-uri: labels si values
+      if (obiectDetrimis.length > 0) {
+        obiectDetrimis = {
+          labels: obiectDetrimis.map((item) => item.label),
+          values: obiectDetrimis.map((item) => item.value),
+        };
+        obiectDetrimis["max"] = Math.max(...obiectDetrimis.values);
+      }
+
+      console.log("Obiect trimis:", obiectDetrimis);
+
+      res.json(obiectDetrimis);
+    } catch (error) {
+      console.error("Eroare la obtinerea tichete pe specializari:", error);
     }
   }
 );
