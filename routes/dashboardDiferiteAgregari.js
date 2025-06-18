@@ -619,4 +619,70 @@ dashboardDiferiteAgregariRouter.get(
   }
 );
 
+dashboardDiferiteAgregariRouter.get(
+  "/tichetePeCompanii/:tipTichet",
+  //esteUtilizatorAdmin,
+  async (req, res) => {
+    try {
+      const tipTichet = Number(req.params.tipTichet);
+      let statusTichete = [1, 2, 3, 4, 5];
+      if (tipTichet === 0) {
+        statusTichete = [6, 7, 8, 9, 10, 11];
+      }
+      const companii = await prisma.companie.findMany({
+        select: {
+          idcompanie: true,
+          nume: true,
+        },
+        orderBy: {
+          idcompanie: "asc",
+        },
+      });
+      let obiectDetrimis = [];
+
+      for (let i = 0; i < companii.length; i++) {
+        let obiectDeAdaugat = {
+          id: i,
+          label: companii[i].nume,
+          value: 0,
+        };
+        let allUsers = await prisma.utilizator.findMany({
+          select: {
+            idutilizator: true,
+            nume: true,
+            prenume: true,
+            idcompanie: true,
+          },
+          where: {
+            idcompanie: companii[i].idcompanie,
+          },
+        });
+        for (let j = 0; j < allUsers.length; j++) {
+          let tichetePeUtilizator = await prisma.tichet.groupBy({
+            by: ["idutilizator"],
+            _count: {
+              idtichet: true,
+            },
+            where: {
+              idutilizator: allUsers[j].idutilizator,
+              idstatus: { in: statusTichete },
+            },
+          });
+          if (tichetePeUtilizator.length > 0) {
+            for (let k = 0; k < tichetePeUtilizator.length; k++) {
+              obiectDeAdaugat.value += tichetePeUtilizator[k]._count.idtichet;
+            }
+          }
+        }
+        if (obiectDeAdaugat.value > 0) {
+          obiectDetrimis.push(obiectDeAdaugat);
+        }
+      }
+      res.json(obiectDetrimis);
+    } catch (error) {
+      console.error("Eroare la obtinerea tichete pe companii:", error);
+    }
+  }
+);
+
 export { dashboardDiferiteAgregariRouter };
