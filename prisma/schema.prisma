@@ -116,6 +116,8 @@ model utilizator {
   IdSessiune                                         String?       @db.VarChar(40)
   timpAbsolutExpirareSesiune                         DateTime?     @db.Timestamp(6)
   tichetValidareDeschis                              Boolean?
+  tokenResetareParola                                String?       @db.VarChar(150)
+  tokenResetareParolaExpirare                        DateTime?     @db.Timestamp(6)
   tichet_tichet_idsuportToutilizator                 tichet[]      @relation("tichet_idsuportToutilizator")
   tichet_tichet_idutilizatorToutilizator             tichet[]      @relation("tichet_idutilizatorToutilizator")
   companie                                           companie?     @relation(fields: [idcompanie], references: [idcompanie], onDelete: NoAction, onUpdate: NoAction)

@@ -2,6 +2,7 @@ import express from "express";
 import passport from "passport";
 import bcrypt from "bcrypt";
 import prisma from "../prisma/prismaClient.js";
+import { sendMail } from "../controllers/sendReset.js";
 
 const saltRounds = 10;
 const utilizatorRouter = express.Router();
@@ -403,6 +404,91 @@ utilizatorRouter.delete("/:id", esteUtilizatorAdmin, async (req, res) => {
       });
     }
     res.status(200).send(utilizator);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error);
+  }
+});
+
+const genereazaTokenResetareParola = () => {
+  return (
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15)
+  );
+};
+
+utilizatorRouter.post("/genereazaToken", async (req, res) => {
+  const { email } = { ...req.body };
+  try {
+    const utilizator = await prisma.utilizator.findUnique({
+      where: { email: email },
+    });
+    if (!utilizator) {
+      return res.status(404).send({ message: "Utilizatorul nu exista" });
+    }
+    // Logic for generating token would go here
+    const token = genereazaTokenResetareParola();
+
+    const resetLink = `${req.protocol}://localhost:5000/resetareParola/${token}`;
+    const mesaj = `
+Salut,
+Pentru a reseta parola, accesați următorul link:
+${resetLink}
+`;
+    await sendMail(
+      email,
+      `Resetare Parola Support Easy pentru ${email}`,
+      mesaj
+    );
+
+    await prisma.utilizator.update({
+      where: { email: email },
+      data: {
+        tokenResetareParola: token,
+        tokenResetareParolaExpirare: new Date(Date.now() + 3600000), // Token valid for 1 hour
+      },
+    });
+
+    res.status(200).send({
+      message: "Link pentru resetare parola trimis la email-ul introdus.",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error);
+  }
+});
+
+utilizatorRouter.post("/resetareParola/:token", async (req, res) => {
+  const { parola } = { ...req.body };
+  let { token } = { ...req.params };
+  console.log(token);
+  try {
+    const utilizator = await prisma.utilizator.findFirstOrThrow({
+      where: { tokenResetareParola: token },
+    });
+    if (!utilizator) {
+      return res.status(404).send({ message: "Utilizatorul nu exista" });
+    }
+    // Logic for sending reset password email would go here
+    if (
+      !utilizator.tokenResetareParolaExpirare ||
+      utilizator.tokenResetareParolaExpirare < new Date(Date.now())
+    ) {
+      return res.status(400).send({ message: "Tokenul de resetare a expirat" });
+    }
+    let hashedParola = bcrypt.hashSync(parola, saltRounds);
+
+    await prisma.utilizator.update({
+      where: { idutilizator: utilizator.idutilizator },
+      data: {
+        modalitatelogare: hashedParola,
+        tokenResetareParola: null,
+        tokenResetareParolaExpirare: null,
+      },
+    });
+    res.status(200).send({
+      message: "Parola a fost resetata cu succes.",
+    });
   } catch (error) {
     console.log(error);
     res.status(500).send(error);

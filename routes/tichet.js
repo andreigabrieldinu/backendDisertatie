@@ -30,7 +30,7 @@ const getAdminTicheteMinime = async (specializare) => {
       by: ["idsuport"],
       where: {
         idstatus: {
-          in: [1, 2, 4, 5, 6],
+          in: [1, 2, 3, 4, 5],
         },
         AND: {
           idsuport: userSpec.idutilizator,
@@ -305,9 +305,14 @@ const insertConsult = async (idtichetparinte, user, body) => {
         },
       });
 
+      if (!utilizator.idcompanie) {
+        return "Nu se poate deschide consult pentru un alt consult.";
+      }
+
       let companie = await prisma.companie.findUnique({
         where: { idcompanie: utilizator.idcompanie },
       });
+
       const subscriptie = await getSubscriptie(companie.tipsubscriptie);
       let tipTichet = "consult";
       let dataCreare = new Date().toISOString();
@@ -404,6 +409,12 @@ tichetRouter.post(
       if (tichet === "Doar proprietarul cazului poate deschide consult.") {
         res.status(403).send({
           message: "Doar proprietarul cazului poate deschide consult.",
+        });
+      } else if (
+        tichet === "Nu se poate deschide consult pentru un alt consult."
+      ) {
+        res.status(409).send({
+          message: "Nu se poate deschide consult pentru un alt consult.",
         });
       } else {
         res.status(201).send({
