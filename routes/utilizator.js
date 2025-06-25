@@ -268,7 +268,7 @@ utilizatorRouter.get(
 utilizatorRouter.get(
   "/google/callback",
   passport.authenticate("google", {
-    successRedirect: "http://localhost:5000",
+    successRedirect: `${process.env.FRONTEND_URL}`,
     failureRedirect: "/api/v1/user/failure",
   })
 );
@@ -429,7 +429,7 @@ utilizatorRouter.post("/genereazaToken", async (req, res) => {
     // Logic for generating token would go here
     const token = genereazaTokenResetareParola();
 
-    const resetLink = `${req.protocol}://localhost:5000/resetareParola/${token}`;
+    const resetLink = `${process.env.FRONTEND_URL}/resetareParola/${token}`;
     const mesaj = `
 Salut,
 Pentru a reseta parola, accesați următorul link:
