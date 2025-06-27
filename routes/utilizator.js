@@ -8,6 +8,8 @@ const saltRounds = 10;
 const utilizatorRouter = express.Router();
 
 async function esteUtilizatorAdmin(req, res, next) {
+  console.log(req.user);
+
   try {
     if (!req.user.message) {
       if (req.user.tiputilizator === "admin") {
