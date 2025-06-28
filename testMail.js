@@ -6,8 +6,7 @@ const testMail = async () => {
   const htmlContent =
     "<h1>This is a test email</h1><p>Hello, this is a test email sent from the Node.js application.</p>";
   try {
-    const info = await sendMail(to, subject, htmlContent);
-    console.log("Email sent successfully:", info);
+    await sendMail(to, subject, htmlContent);
   } catch (error) {
     console.error("Error sending email:", error);
   }

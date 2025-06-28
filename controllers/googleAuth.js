@@ -20,6 +20,9 @@ passport.use(
       const { sessionID } = request;
       const { _expires } = request.session.cookie;
       _expires.setHours(_expires.getHours() + 3);
+      console.log("utilizator", utilizator);
+      console.log("request", request);
+
       if (!utilizator) {
         try {
           const { givenName, familyName } = profile.name;
