@@ -268,7 +268,7 @@ utilizatorRouter.get(
 utilizatorRouter.get(
   "/google/callback",
   passport.authenticate("google", {
-    successRedirect: `${process.env.FRONTEND_URL}`,
+    successRedirect: `${process.env.FRONTEND_URL}/acasa`,
     failureRedirect: "/api/v1/user/failure",
   })
 );
@@ -461,7 +461,6 @@ ${resetLink}
 utilizatorRouter.post("/resetareParola/:token", async (req, res) => {
   const { parola } = { ...req.body };
   let { token } = { ...req.params };
-  console.log(token);
   try {
     const utilizator = await prisma.utilizator.findFirstOrThrow({
       where: { tokenResetareParola: token },

@@ -20,8 +20,6 @@ passport.use(
       const { sessionID } = request;
       const { _expires } = request.session.cookie;
       _expires.setHours(_expires.getHours() + 3);
-      console.log("utilizator", utilizator);
-      console.log("request", request);
 
       if (!utilizator) {
         try {
@@ -50,8 +48,6 @@ passport.use(
         }
         return done(null, utilizator);
       } else {
-        console.log("Utilizator deja existent", utilizator);
-
         try {
           await prisma.utilizator.update({
             where: {
