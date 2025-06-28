@@ -50,6 +50,8 @@ passport.use(
         }
         return done(null, utilizator);
       } else {
+        console.log("Utilizator deja existent", utilizator);
+
         try {
           await prisma.utilizator.update({
             where: {
@@ -62,11 +64,11 @@ passport.use(
           });
           utilizator.IdSessiune = sessionID;
           utilizator.timpAbsolutExpirareSesiune = _expires;
+          return done(null, utilizator);
         } catch (error) {
           console.log(error);
         }
       }
-      return done(null, utilizator);
     }
   )
 );

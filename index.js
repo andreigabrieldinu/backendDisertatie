@@ -29,7 +29,10 @@ app.use(cookieParser());
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
-    cookie: { maxAge: 259200000, domain: ".suporteasy.eu" }, //259200000 milisecunde = 3 zile
+    cookie: {
+      maxAge: 259200000,
+      domain: ".suporteasy.eu",
+    }, //259200000 milisecunde = 3 zile
     saveUninitialized: true,
     resave: true,
   })
